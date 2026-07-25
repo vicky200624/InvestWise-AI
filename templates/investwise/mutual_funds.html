@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestWise AI - Mutual Funds</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>IA</text></svg>">
+    <link rel="stylesheet" href="{% static 'css/shared_style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="investwise_dashboard.html" class="back-btn">←</a>
+            <div class="logo-icon" style="background-color: #16a34a;">📊</div>
+            <span class="brand-name">Mutual Funds</span>
+        </div>
+    </nav>
+
+    <main class="page-container">
+        <!-- Asset Overview -->
+        <div class="asset-header" style="background: linear-gradient(135deg, #166534, #15803d);">
+            <div>
+                <p class="asset-title" style="color: #bbf7d0;">Total MF Value</p>
+                <h1 class="asset-total">₹2,85,000</h1>
+                <div class="asset-returns">
+                    <span class="badge-up" style="background: rgba(0,0,0,0.2); color: white;">+18.5% XIRR</span>
+                    <span>Profit: ₹44,500</span>
+                </div>
+            </div>
+            <div class="metric-grid">
+                <div class="metric-item">
+                    <p class="metric-label">Monthly SIP</p>
+                    <p class="metric-val">₹15,000</p>
+                </div>
+                <div class="metric-item">
+                    <p class="metric-label">Active Funds</p>
+                    <p class="metric-val">4</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <!-- Holdings Table -->
+            <div class="card">
+                <h2 class="card-title">Active Investments</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fund Name</th>
+                            <th>Type</th>
+                            <th class="text-right">Invested</th>
+                            <th class="text-right">Current Value</th>
+                            <th class="text-right">XIRR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Parag Parikh Flexi Cap</td>
+                            <td>Equity</td>
+                            <td class="text-right">₹1,20,000</td>
+                            <td class="text-right">₹1,50,000</td>
+                            <td class="text-right text-green">21.2%</td>
+                        </tr>
+                        <tr>
+                            <td>Quant Small Cap Fund</td>
+                            <td>Equity</td>
+                            <td class="text-right">₹80,000</td>
+                            <td class="text-right">₹95,000</td>
+                            <td class="text-right text-green">28.4%</td>
+                        </tr>
+                        <tr>
+                            <td>SBI Liquid Fund</td>
+                            <td>Debt</td>
+                            <td class="text-right">₹40,500</td>
+                            <td class="text-right">₹40,000</td>
+                            <td class="text-right text-green">6.8%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Insights Side Panel -->
+            <div class="card" style="background-color: #111827; color: white;">
+                <h2 class="card-title" style="color: white;">✨ AI Insights</h2>
+                <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6; font-style: italic;">
+                    "Your SIPs are maintaining a healthy 18.5% overall XIRR. The Parag Parikh Flexi Cap fund provides good international exposure, effectively balancing the higher volatility of your Quant Small Cap holdings. Consider a slight increase in your Debt allocation for better downside protection."
+                </p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

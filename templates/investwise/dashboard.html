@@ -1,0 +1,542 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestWise AI - Super App Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>IA</text></svg>">
+    <style>
+        /* =========================================
+           BASE STYLES & VARIABLES
+           ========================================= */
+        :root {
+            --bg-color: #f3f4f6;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --purple-main: #7e22ce;
+            --purple-dark: #581c87;
+            --white: #ffffff;
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        /* =========================================
+           TOP NAVIGATION
+           ========================================= */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--white);
+            padding: 16px 32px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 75px;
+        }
+
+        .nav-left, .nav-right, .user-profile {
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px; height: 40px;
+            background-color: var(--purple-main);
+            color: var(--white);
+            border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            font-weight: bold; font-size: 1.1rem;
+            box-shadow: 0 4px 6px rgba(126, 34, 206, 0.2);
+        }
+
+        .brand-name { font-size: 1.25rem; font-weight: bold; }
+        .user-info { text-align: right; display: none; }
+        .user-name { font-weight: bold; font-size: 0.9rem; }
+        .user-email { color: var(--text-muted); font-size: 0.8rem; }
+        .avatar { width: 42px; height: 42px; border-radius: 50%; }
+
+        /* =========================================
+           MAIN DASHBOARD CONTAINER
+           ========================================= */
+        .dashboard-container {
+            max-width: 1800px;
+            width: 96%; 
+            margin: 0 auto;
+            padding: 24px 0;
+            display: flex;
+            flex-direction: column; 
+            gap: 24px;
+        }
+
+        /* --- Portfolio Hero Card --- */
+        .portfolio-hero {
+            background: linear-gradient(135deg, var(--purple-dark), var(--purple-main));
+            border-radius: 20px;
+            padding: 24px;
+            color: var(--white);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(126, 34, 206, 0.4);
+            margin-bottom: 24px;
+        }
+
+        .hero-bg-glow {
+            position: absolute; top: -50px; right: -50px;
+            width: 300px; height: 300px;
+            background-color: var(--white); opacity: 0.05; border-radius: 50%; filter: blur(40px);
+        }
+
+        .hero-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 24px; position: relative; z-index: 10;
+        }
+
+        .hero-label { color: #d8b4fe; font-size: 0.9rem; margin-bottom: 4px; }
+        .hero-value { font-size: 2rem; font-weight: bold; }
+
+        .health-score {
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+            padding: 8px 16px; border-radius: 12px; text-align: center;
+        }
+        .health-label { font-size: 0.75rem; text-transform: uppercase; color: #e9d5ff; }
+        .health-value { font-size: 1.25rem; font-weight: bold; color: #86efac; }
+
+        .hero-footer { display: flex; align-items: center; gap: 12px; position: relative; z-index: 10; }
+        .returns-badge { background-color: rgba(34, 197, 94, 0.2); color: #86efac; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; }
+        .returns-text { font-size: 0.9rem; color: #e9d5ff; }
+
+        /* --- Asset Grid --- */
+        .asset-section { display: flex; flex-direction: column; }
+        .asset-section h2 { margin-bottom: 16px; font-size: 1.15rem; }
+
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .asset-card {
+            background-color: var(--white); padding: 20px; border-radius: 16px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .asset-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1); }
+
+        .icon-box {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.35rem; margin-bottom: 16px;
+        }
+
+        .icon-blue { background-color: #e0f2fe; color: #0284c7; }
+        .icon-green { background-color: #dcfce3; color: #16a34a; }
+        .icon-yellow { background-color: #fef08a; color: #ca8a04; }
+        .icon-orange { background-color: #ffedd5; color: #ea580c; }
+        .asset-card h3 { font-size: 1rem; margin-bottom: 6px; }
+        .asset-card p { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* =========================================
+           SIDEBAR (AI & SECURITY)
+           ========================================= */
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+
+        /* AI Card */
+        .ai-card { background-color: #111827; color: var(--white); padding: 24px; border-radius: 20px; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.15); }
+        .ai-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .ai-icon-pulse {
+            width: 36px; height: 36px; background-color: var(--purple-main); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; animation: pulse 2s infinite; font-size: 1rem;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(126, 34, 206, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(126, 34, 206, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(126, 34, 206, 0); }
+        }
+        .ai-text { color: #9ca3af; font-size: 0.95rem; margin-bottom: 24px; font-style: italic; line-height: 1.6; }
+        
+        .ai-actions { display: flex; gap: 12px; }
+        .ai-btn { flex-grow: 1; background-color: var(--purple-main); color: var(--white); border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem;}
+        .ai-btn:hover { background-color: var(--purple-dark); }
+        
+        .ai-mic-btn {
+            background-color: #374151; color: var(--white); border: none; border-radius: 12px;
+            padding: 0 20px; font-size: 1.5rem; cursor: pointer; transition: 0.2s;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .ai-mic-btn:hover { background-color: #4b5563; transform: scale(1.05); }
+
+        /* Security Card */
+        .security-card { background-color: var(--white); padding: 24px; border-radius: 20px; border: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .security-card h3 { margin-bottom: 20px; font-size: 1.15rem; }
+        .alert-list { display: flex; flex-direction: column; gap: 16px; }
+        .alert-item { display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 12px; background-color: var(--bg-color); cursor: pointer; transition: 0.2s; }
+        .alert-item:hover { background-color: #e5e7eb; }
+        .alert-icon { padding: 12px; border-radius: 12px; font-size: 1.25rem; }
+        .alert-icon.icon-red { background-color: #fee2e2; color: #ef4444; }
+        .alert-icon.icon-blue { background-color: #dbeafe; color: #3b82f6; }
+        .alert-info h4 { font-size: 0.95rem; margin-bottom: 4px; }
+        .alert-info p { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* =========================================
+           MOBILE BOTTOM NAVIGATION
+           ========================================= */
+        .mobile-bottom-nav {
+            display: flex; justify-content: space-around; align-items: center;
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: var(--white); padding: 12px 10px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05); z-index: 100;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--text-muted); gap: 4px; }
+        .nav-item.active { color: var(--purple-main); }
+        .nav-icon { font-size: 1.3rem; }
+        .nav-text { font-size: 0.75rem; font-weight: 500; }
+        .ai-fab {
+            background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
+            width: 55px; height: 55px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            transform: translateY(-20px); box-shadow: 0 4px 15px rgba(126, 34, 206, 0.4); color: white;
+        }
+        .ai-fab .nav-icon { font-size: 1.5rem; }
+        .mobile-spacer { height: 90px; } 
+
+        /* =========================================
+           VOICE ASSISTANT MODAL (FULL SCREEN)
+           ========================================= */
+        .voice-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(17, 24, 39, 0.9); backdrop-filter: blur(10px);
+            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out;
+        }
+        .voice-modal.active { opacity: 1; pointer-events: auto; }
+        
+        .voice-modal-content {
+            text-align: center; color: var(--white); display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+        .mic-pulse-wrapper {
+            width: 100px; height: 100px; background-color: var(--purple-main); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; animation: bigPulse 1.5s infinite; margin-bottom: 20px;
+        }
+        @keyframes bigPulse {
+            0% { box-shadow: 0 0 0 0 rgba(126, 34, 206, 0.8); }
+            70% { box-shadow: 0 0 0 30px rgba(126, 34, 206, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(126, 34, 206, 0); }
+        }
+        .mic-icon-large { font-size: 3rem; }
+        #voiceStatus { font-size: 2rem; font-weight: bold; }
+        #voiceTranscript { font-size: 1.2rem; color: #d8b4fe; max-width: 80%; margin: 0 auto; min-height: 30px; font-style: italic;}
+        .close-voice-btn {
+            margin-top: 30px; background-color: transparent; border: 2px solid var(--text-muted);
+            color: var(--text-muted); padding: 10px 24px; border-radius: 20px; font-size: 1rem; cursor: pointer; transition: 0.2s;
+        }
+        .close-voice-btn:hover { background-color: var(--text-muted); color: #111827; }
+
+        /* =========================================
+           DESKTOP STRETCHING (FULL SCREEN FIX)
+           ========================================= */
+        @media (min-width: 992px) {
+            .dashboard-container {
+                display: grid;
+                grid-template-columns: 2.2fr 1fr; /* PC Column Ratio */
+                gap: 40px; padding: 40px;
+                height: calc(100vh - 75px);
+                align-items: stretch;
+            }
+
+            .user-info { display: block; }
+            
+            .main-content { display: flex; flex-direction: column; gap: 40px; }
+
+            .portfolio-hero { 
+                padding: 48px; border-radius: 24px; min-height: 280px;
+                display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;
+            }
+            .hero-value { font-size: 3.5rem; margin-top: 12px; }
+            .hero-label { font-size: 1.2rem; }
+            .health-score { padding: 14px 28px; }
+            .health-value { font-size: 2rem; }
+            .returns-badge { font-size: 1rem; padding: 8px 16px; }
+            .returns-text { font-size: 1rem; }
+
+            .asset-section { flex-grow: 1; }
+            .asset-section h2 { font-size: 1.5rem; margin-bottom: 24px; }
+            
+            .asset-grid { 
+                grid-template-columns: repeat(4, 1fr); gap: 32px; 
+                flex-grow: 1; display: grid;
+            }
+            
+            .asset-card {
+                padding: 32px 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-radius: 20px;
+            }
+            
+            .icon-box { width: 64px; height: 64px; font-size: 2rem; margin-bottom: 24px; }
+            .asset-card h3 { font-size: 1.2rem; margin-bottom: 8px; }
+            .asset-card p { font-size: 1rem; }
+
+            .sidebar { gap: 40px; }
+            
+            .ai-card, .security-card { 
+                flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px 32px;
+            }
+            
+            .ai-header h3 { font-size: 1.4rem; }
+            .ai-icon-pulse { width: 44px; height: 44px; font-size: 1.2rem; }
+            .ai-text { font-size: 1.15rem; margin-bottom: 32px; }
+            .ai-btn { padding: 16px; font-size: 1.1rem; }
+            .ai-mic-btn { padding: 0 24px; font-size: 1.7rem; }
+
+            .security-card h3 { font-size: 1.4rem; margin-bottom: 32px; }
+            .alert-list { justify-content: center; flex-grow: 1; gap: 24px; }
+            .alert-item { padding: 20px; }
+            .alert-icon { font-size: 1.5rem; padding: 16px; }
+            .alert-info h4 { font-size: 1.1rem; }
+            .alert-info p { font-size: 0.95rem; }
+
+            .mobile-bottom-nav, .mobile-spacer { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="logo-icon">IA</div>
+            <span class="brand-name">InvestWise</span>
+        </div>
+        <div class="nav-right">
+            <div class="user-profile">
+                <div class="user-info">
+                    <p class="user-name">Vignesh V</p>
+                    <p class="user-email">vignesh@example.com</p>
+                </div>
+                <img src="https://ui-avatars.com/api/?name=Vignesh+V&background=6B21A8&color=fff" alt="User Profile" class="avatar">
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard-container">
+        
+        <!-- Left Content Area -->
+        <div class="main-content">
+            
+            <!-- Hero Portfolio Card -->
+            <div class="portfolio-hero">
+                <div class="hero-bg-glow"></div>
+                <div class="hero-header">
+                    <div>
+                        <p class="hero-label">Total Net Worth</p>
+                        <h1 class="hero-value">₹12,45,000</h1>
+                    </div>
+                    <div class="health-score">
+                        <p class="health-label">Health</p>
+                        <p class="health-value">88</p>
+                    </div>
+                </div>
+                <div class="hero-footer">
+                    <div class="returns-badge">+12.5%</div>
+                    <p class="returns-text">Total Returns: ₹1,55,625</p>
+                </div>
+            </div>
+
+            <!-- Unified Multi-Asset Cockpit -->
+            <div class="asset-section">
+                <h2>Asset Allocation</h2>
+                <div class="asset-grid">
+                    <div class="asset-card">
+                        <div class="icon-box icon-blue">📈</div>
+                        <h3>Stocks</h3>
+                        <p>15 Active</p>
+                    </div>
+                    <div class="asset-card">
+                        <div class="icon-box icon-green">📊</div>
+                        <h3>Mutual Funds</h3>
+                        <p>4 Active</p>
+                    </div>
+                    <div class="asset-card">
+                        <div class="icon-box icon-yellow">🪙</div>
+                        <h3>Gold / SGBs</h3>
+                        <p>2 Active</p>
+                    </div>
+                    <div class="asset-card">
+                        <div class="icon-box icon-orange">🏢</div>
+                        <h3>REITs</h3>
+                        <p>1 Active</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Content Area (Sidebar on PC) -->
+        <aside class="sidebar">
+            
+            <!-- Conversational AI Assistant -->
+            <div class="ai-card">
+                <div class="ai-header">
+                    <div class="ai-icon-pulse">✨</div>
+                    <h3>AI Advisory</h3>
+                </div>
+                <p class="ai-text" id="aiResponseText">"Your portfolio is heavily weighted in equities. Consider adding Sovereign Gold Bonds to optimize risk."</p>
+                
+                <!-- Updated Buttons -->
+                <div class="ai-actions">
+                    <button class="ai-btn">Text Chat</button>
+                    <button class="ai-mic-btn" onclick="startVoiceAssistant()" title="Start Voice Assistant">
+                        🎙️
+                    </button>
+                </div>
+            </div>
+
+            <!-- SEBI Education & Alerts -->
+            <div class="security-card">
+                <h3>Awareness & Security</h3>
+                <div class="alert-list">
+                    <div class="alert-item">
+                        <div class="alert-icon icon-red">⚠️</div>
+                        <div class="alert-info">
+                            <h4>Scam Alerts</h4>
+                            <p>Zero active threats detected</p>
+                        </div>
+                    </div>
+                    <div class="alert-item">
+                        <div class="alert-icon icon-blue">📚</div>
+                        <div class="alert-info">
+                            <h4>SEBI Learning Hub</h4>
+                            <p>Resume micro-lesson on Tax</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mobile-spacer"></div>
+        </aside>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="#" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Home</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">💼</span>
+            <span class="nav-text">Assets</span>
+        </a>
+        <a href="#" class="nav-item ai-fab" onclick="startVoiceAssistant()">
+            <span class="nav-icon">✨</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">🛡️</span>
+            <span class="nav-text">Security</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span class="nav-text">Profile</span>
+        </a>
+    </nav>
+
+    <!-- Voice Assistant Modal -->
+    <div id="voiceModal" class="voice-modal">
+        <div class="voice-modal-content">
+            <div class="mic-pulse-wrapper">
+                <div class="mic-icon-large">🎙️</div>
+            </div>
+            <h3 id="voiceStatus">Listening...</h3>
+            <p id="voiceTranscript">Speak in English, Hindi, or Tamil...</p>
+            <button onclick="closeVoiceAssistant()" class="close-voice-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Voice Assistant Script -->
+    <script>
+        const voiceModal = document.getElementById('voiceModal');
+        const voiceStatus = document.getElementById('voiceStatus');
+        const voiceTranscript = document.getElementById('voiceTranscript');
+        const aiResponseText = document.getElementById('aiResponseText');
+        
+        let recognition;
+
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true; 
+            recognition.lang = 'en-IN'; // Configured for Indian English/Multi-lingual base
+
+            recognition.onstart = function() {
+                voiceStatus.innerText = "Listening...";
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                voiceTranscript.innerText = finalTranscript || interimTranscript;
+            };
+
+            recognition.onend = function() {
+                if (voiceTranscript.innerText !== "Speak in English, Hindi, or Tamil...") {
+                    voiceStatus.innerText = "Processing...";
+                    
+                    setTimeout(() => {
+                        closeVoiceAssistant();
+                        aiResponseText.innerText = `"I heard you say: '${voiceTranscript.innerText}'. Based on this, I recommend reviewing your current asset allocations."`;
+                    }, 1500);
+                } else {
+                    closeVoiceAssistant();
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                voiceStatus.innerText = "Error picking up audio.";
+                setTimeout(closeVoiceAssistant, 2000);
+            };
+            
+        } else {
+            console.warn("Speech Recognition API is not supported in this browser.");
+        }
+
+        function startVoiceAssistant() {
+            if (!recognition) {
+                alert("Your browser does not support the Voice Assistant. Try Chrome or Safari.");
+                return;
+            }
+            voiceTranscript.innerText = "Speak in English, Hindi, or Tamil...";
+            voiceModal.classList.add('active');
+            recognition.start();
+        }
+
+        function closeVoiceAssistant() {
+            voiceModal.classList.remove('active');
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+    </script>
+</body>
+</html>

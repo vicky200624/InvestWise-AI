@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestWise AI - Equity Stocks</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>IA</text></svg>">
+    <link rel="stylesheet" href="{% static 'css/shared_style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="investwise_dashboard.html" class="back-btn">←</a>
+            <div class="logo-icon">📈</div>
+            <span class="brand-name">Equity Stocks</span>
+        </div>
+    </nav>
+
+    <main class="page-container">
+        <!-- Asset Overview -->
+        <div class="asset-header">
+            <div>
+                <p class="asset-title">Total Stocks Value</p>
+                <h1 class="asset-total">₹4,25,000</h1>
+                <div class="asset-returns">
+                    <span class="badge-up">+15.2%</span>
+                    <span>Profit: ₹56,000</span>
+                </div>
+            </div>
+            <div class="metric-grid">
+                <div class="metric-item">
+                    <p class="metric-label">Holdings</p>
+                    <p class="metric-val">15 Active</p>
+                </div>
+                <div class="metric-item">
+                    <p class="metric-label">Day's Change</p>
+                    <p class="metric-val text-green">+₹2,450</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <!-- Holdings Table -->
+            <div class="card">
+                <h2 class="card-title">Your Portfolio</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Stock Name</th>
+                            <th>Qty</th>
+                            <th class="text-right">Avg Price</th>
+                            <th class="text-right">LTP</th>
+                            <th class="text-right">Return</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Reliance Ind.</td>
+                            <td>50</td>
+                            <td class="text-right">₹2,400.00</td>
+                            <td class="text-right">₹2,950.00</td>
+                            <td class="text-right text-green">+22.9%</td>
+                        </tr>
+                        <tr>
+                            <td>TCS</td>
+                            <td>20</td>
+                            <td class="text-right">₹3,500.00</td>
+                            <td class="text-right">₹3,900.00</td>
+                            <td class="text-right text-green">+11.4%</td>
+                        </tr>
+                        <tr>
+                            <td>HDFC Bank</td>
+                            <td>100</td>
+                            <td class="text-right">₹1,600.00</td>
+                            <td class="text-right">₹1,450.00</td>
+                            <td class="text-right text-red">-9.3%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Insights Side Panel -->
+            <div class="card" style="background-color: #111827; color: white;">
+                <h2 class="card-title" style="color: white;">✨ AI Insights</h2>
+                <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6; font-style: italic;">
+                    "Your equity portfolio is outperforming the NIFTY 50 benchmark by 4.2% this quarter. However, you have high exposure to the IT sector (45%). Consider diversifying into Pharma or Auto for better risk optimization."
+                </p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
