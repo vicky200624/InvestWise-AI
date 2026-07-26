@@ -151,7 +151,9 @@
                         "Your portfolio is heavily weighted in equities. Consider adding Sovereign Gold Bonds to optimize risk."
                     </p>
                     <div class="flex gap-2">
-                        <button onclick="askGemini()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-colors text-sm shadow-md">Ask Gemini</button>
+                        <a href="{% url 'chat' %}" class="w-full block text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-colors text-sm shadow-md">
+                            Ask Gemini ✨
+                        </a>
                         <button onclick="playTTS()" class="w-12 bg-gray-800 hover:bg-gray-700 text-white rounded-xl flex items-center justify-center font-bold text-lg border border-gray-700"> </button>
                     </div>
                 </div>

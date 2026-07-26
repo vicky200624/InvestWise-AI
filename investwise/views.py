@@ -326,17 +326,59 @@ def reits_view(request):
 
 # ==============================================================================
 # AI ADVISOR & TTS API ENDPOINTS
-# ==============================================================================
 @csrf_exempt
 def ai_advisor_view(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             user_query = data.get('query', '')
-            
+
             if not user_query:
                 return JsonResponse({'error': 'Query cannot be empty'}, status=400)
+
+            # 1. PASTE YOUR NEW KEY DIRECTLY HERE FOR TESTING
+            client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+            
+            system_context = (
+                "You are the InvestWise AI Advisor. Provide smart, safe, "
+                "and SEBI-compliant investment guidance for retail investors. "
+                "Keep answers highly concise (under 2 sentences) for speech synthesis. User query: "
+            )
+            
+            # --- USE THE 2.5 FLASH MODEL FROM YOUR LIST ---
+            response = client.models.generate_content(
+                model='gemini-2.5-flash', 
+                contents=system_context + user_query
+            )
+            # ----------------------------------------------
+            return JsonResponse({'status': 'success', 'response': response.text})
+
+        except Exception as e:
+            error_message = str(e)
+            
+            # 2. PRINT THE ERROR TO THE TERMINAL SO WE CAN SEE IT
+            print("\n=== GEMINI API ERROR ===")
+            print(error_message)
+            print("========================\n")
+            
+            if '429' in error_message or 'RESOURCE_EXHAUSTED' in error_message:
+                fallback_text = (
+                    "InvestWise AI is currently experiencing high traffic. "
+                    "However, looking at your current allocation, consider diversifying into Sovereign Gold Bonds to balance your equity exposure."
+                )
+                return JsonResponse({'status': 'success', 'response': fallback_text})
                 
+            return JsonResponse({'error': error_message}, status=500)
+            
+    return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_query = data.get('query', '')
+
+            if not user_query:
+                return JsonResponse({'error': 'Query cannot be empty'}, status=400)
+
             client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
             
             system_context = (
@@ -346,17 +388,27 @@ def ai_advisor_view(request):
             )
             
             response = client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-2.0-flash', 
                 contents=system_context + user_query
             )
             
             return JsonResponse({'status': 'success', 'response': response.text})
+
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            error_message = str(e)
+            
+            # If we hit a Rate Limit (429), return a graceful fallback response
+            if '429' in error_message or 'RESOURCE_EXHAUSTED' in error_message:
+                fallback_text = (
+                    "InvestWise AI is currently experiencing high traffic. "
+                    "However, looking at your current allocation, consider diversifying into Sovereign Gold Bonds to balance your equity exposure."
+                )
+                return JsonResponse({'status': 'success', 'response': fallback_text})
+                
+            # If it's a 404 or other error, return the actual error
+            return JsonResponse({'error': error_message}, status=500)
             
     return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
-
-
 @csrf_exempt
 def tts_view(request):
     if request.method == 'POST':
@@ -401,3 +453,225 @@ def tts_view(request):
 def user_manual_view(request):
     """Renders a clean, print-friendly user manual for PDF export."""
     return render(request, 'investwise/user_manual.html')
+
+import os
+import json
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.documents import Document
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+# Global variable to cache the vector database in memory
+_VECTOR_STORE = None
+
+def get_vector_store():
+    """Initializes and caches the local FAISS vector database."""
+    global _VECTOR_STORE
+    if _VECTOR_STORE is None:
+        documents = [
+            Document(page_content="InvestWise strongly recommends Sovereign Gold Bonds (SGBs) because they offer a 2.5% annual interest rate on top of capital appreciation, and they are tax-free if held to maturity."),
+            Document(page_content="Angel One is the primary broker for InvestWise. To sync it, users must generate a TOTP secret using a third-party authenticator application."),
+            Document(page_content="For Equity portfolios with a Health Score below 60, InvestWise algorithms suggest rebalancing into Midcap Mutual Funds to distribute risk.")
+        ]
+        
+        # --- CHANGE THE MODEL NAME RIGHT HERE ---
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+        # ----------------------------------------
+        
+        _VECTOR_STORE = FAISS.from_documents(documents, embeddings)
+        
+    return _VECTOR_STORE
+from django.db.models import Q
+from .models import BrokerCredentials, ChatSession, ChatMessage
+
+@login_required(login_url='login')
+@login_required(login_url='login')
+def chat_ui_view(request, session_id=None):
+    sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
+    
+    current_session = None
+    messages_list = []
+
+    if session_id:
+        try:
+            current_session = ChatSession.objects.get(id=session_id, user=request.user)
+            messages_list = ChatMessage.objects.filter(session=current_session).order_by('timestamp')
+        except ChatSession.DoesNotExist:
+            return redirect('chat')
+    elif sessions.exists():
+        current_session = sessions.first()
+        messages_list = ChatMessage.objects.filter(session=current_session).order_by('timestamp')
+
+    context = {
+        'sessions': sessions,
+        'current_session': current_session,
+        'chat_messages': messages_list,
+    }
+    return render(request, 'investwise/chat.html', context)
+
+@login_required(login_url='login')
+def delete_chat_session(request, session_id):
+    ChatSession.objects.filter(id=session_id, user=request.user).delete()
+    return redirect('chat')
+    sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
+    
+    current_session = None
+    messages_list = []
+
+    if session_id:
+        try:
+            current_session = ChatSession.objects.get(id=session_id, user=request.user)
+            messages_list = ChatMessage.objects.filter(session=current_session).order_by('timestamp')
+        except ChatSession.DoesNotExist:
+            return redirect('chat')
+    elif sessions.exists():
+        current_session = sessions.first()
+        messages_list = ChatMessage.objects.filter(session=current_session).order_by('timestamp')
+
+    context = {
+        'sessions': sessions,
+        'current_session': current_session,
+        'chat_messages': messages_list,
+    }
+    return render(request, 'investwise/chat.html', context)
+
+@login_required(login_url='login')
+def new_chat_session(request):
+    session = ChatSession.objects.create(user=request.user, title="New Conversation")
+    return redirect('chat_detail', session_id=session.id)
+
+@csrf_exempt
+@login_required(login_url='login')
+def langchain_chat_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message', '')
+            session_id = data.get('session_id')
+
+            if not user_message:
+                return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+
+            # Get or create session
+            if session_id:
+                session = ChatSession.objects.get(id=session_id, user=request.user)
+            else:
+                session = ChatSession.objects.filter(user=request.user).order_by('-created_at').first()
+                if not session:
+                    session = ChatSession.objects.create(user=request.user, title="New Conversation")
+
+            # Update session title if it's the first message
+            if session.title == "New Conversation":
+                session.title = user_message[:25] + "..." if len(user_message) > 25 else user_message
+                session.save()
+
+            ChatMessage.objects.create(session=session, user=request.user, role='user', content=user_message)
+
+            llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
+            vector_store = get_vector_store()
+            retriever = vector_store.as_retriever(search_kwargs={"k": 2})
+
+            recent_history = ChatMessage.objects.filter(session=session).order_by('-timestamp')[1:7]
+            formatted_history = "".join([f"{'User' if m.role == 'user' else 'Assistant'}: {m.content}\n" for m in reversed(recent_history)])
+
+            system_prompt = (
+                "You are the InvestWise AI Assistant, a helpful financial expert.\n"
+                "Use the retrieved context or general knowledge to answer. Keep answers concise.\n"
+                "If the user asks to connect a broker, include: <a href='/connect-broker/' class='text-purple-400 font-bold underline'>Click here to Connect Broker</a>\n"
+                "If the user asks to see their dashboard, include: <a href='/dashboard/' class='text-purple-400 font-bold underline'>Go to Dashboard</a>\n\n"
+                "Conversation History:\n{history}\n\nContext: {context}"
+            )
+            
+            prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
+            rag_chain = (
+                {"context": retriever | (lambda docs: "\n\n".join(d.page_content for d in docs)), "history": lambda x: formatted_history, "input": RunnablePassthrough()}
+                | prompt | llm | StrOutputParser()
+            )
+
+            response = rag_chain.invoke(user_message)
+            ChatMessage.objects.create(session=session, user=request.user, role='ai', content=response)
+
+            return JsonResponse({'status': 'success', 'response': response, 'session_id': session.id})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
+
+
+    """Processes RAG requests, integrates long-term DB memory, and saves history."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message', '')
+
+            if not user_message:
+                return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+
+            # 1. Save User Message to Database
+            ChatMessage.objects.create(user=request.user, role='user', content=user_message)
+
+            # 2. Setup Model & Retriever
+            llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
+            vector_store = get_vector_store()
+            retriever = vector_store.as_retriever(search_kwargs={"k": 2})
+
+            # 3. Fetch past context from Database for Memory
+            recent_history = ChatMessage.objects.filter(user=request.user).order_by('-timestamp')[1:7]
+            formatted_history = ""
+            for msg in reversed(recent_history):
+                role = "User" if msg.role == 'user' else "Assistant"
+                formatted_history += f"{role}: {msg.content}\n"
+
+            # 4. System Prompt with Smart Routing Links
+            system_prompt = (
+                "You are the InvestWise AI Assistant, a helpful financial expert.\n"
+                "Use the retrieved context or general knowledge to answer. Keep answers concise.\n"
+                "If the user asks to connect a broker, include: <a href='/connect-broker/' class='text-purple-600 font-bold underline'>Click here to Connect Broker</a>\n"
+                "If the user asks to see their dashboard, include: <a href='/dashboard/' class='text-purple-600 font-bold underline'>Go to Dashboard</a>\n"
+                "If the user asks to see their stocks, include: <a href='/stocks/' class='text-purple-600 font-bold underline'>View My Stocks</a>\n\n"
+                "Conversation History:\n{history}\n\n"
+                "Context: {context}"
+            )
+            
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", "{input}"),
+            ])
+
+            def format_docs(docs):
+                return "\n\n".join(doc.page_content for doc in docs)
+
+            rag_chain = (
+                {
+                    "context": retriever | format_docs, 
+                    "history": lambda x: formatted_history, 
+                    "input": RunnablePassthrough()
+                }
+                | prompt
+                | llm
+                | StrOutputParser()
+            )
+
+            response = rag_chain.invoke(user_message)
+            
+            # 5. Save AI Response to Database
+            ChatMessage.objects.create(user=request.user, role='ai', content=response)
+
+            return JsonResponse({'status': 'success', 'response': response})
+
+        except Exception as e:
+            print(f"LangChain Error: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+            
+    return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
+
+@login_required(login_url='login')
+def clear_chat_history(request):
+    """Deletes all chat history for the logged-in user."""
+    ChatMessage.objects.filter(user=request.user).delete()
+    return redirect('chat')

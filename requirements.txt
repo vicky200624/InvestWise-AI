@@ -41,3 +41,7 @@ typing_extensions==4.16.0
 uritemplate==4.2.0
 urllib3==2.7.0
 websockets==16.1.1
+langchain 
+langchain-google-genai 
+langchain-community 
+faiss-cpu
