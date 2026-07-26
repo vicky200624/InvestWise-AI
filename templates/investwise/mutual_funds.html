@@ -18,7 +18,7 @@
             <a href="{% url 'dashboard' %}" class="text-green-600 hover:text-green-800 font-bold text-xl transition-colors">&larr; Back to Dashboard</a>
         </div>
         <div class="flex items-center gap-2">
-            <div class="w-10 h-10 bg-green-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-md">📊</div>
+            <div class="w-10 h-10 bg-green-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-md"> </div>
             <span class="font-bold text-xl">Mutual Funds</span>
         </div>
     </nav>
@@ -27,12 +27,13 @@
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end">
                 <div>
                     <p class="text-green-100 text-lg mb-2 font-medium">Total Mutual Funds Value</p>
-                    <h1 class="text-5xl font-extrabold tracking-tight">₹{{ total_current }}</h1>
+                    <h1 class="text-5xl font-extrabold tracking-tight"> {{ total_current }}</h1>
+                    <p class="text-blue-200 text-sm mt-3 font-medium">Total Invested: ₹ {{ total_invested }}</p>
                 </div>
                 <div class="mt-6 md:mt-0 flex gap-6 text-right">
                     <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
                         <p class="text-green-100 text-sm uppercase tracking-wider">Active SIPs</p>
-                        <p class="text-2xl font-bold">3 Funds</p>
+                        <p class="text-2xl font-bold">{{ portfolio|length }} Funds</p>
                     </div>
                 </div>
             </div>
@@ -58,20 +59,25 @@
                                     {{ fund.name }}
                                 </td>
                                 <td class="py-4">Equity</td>
-                                <td class="py-4 text-right">₹{{ fund.avg_price|floatformat:2 }} (Avg)</td>
-                                <td class="py-4 font-semibold text-right text-green-600">₹{{ fund.current_value|floatformat:2 }}</td>
+                                <td class="py-4 text-right"> {{ fund.avg_price|floatformat:2 }} (Avg)</td>
+                                <td class="py-4 font-semibold text-right text-green-600"> {{ fund.current_value|floatformat:2 }}</td>
                             </tr>
                             {% endfor %}
+                            {% if not portfolio %}
+                            <tr>
+                                <td colspan="4" class="text-center py-6 text-gray-500">No mutual fund holdings found. Add them via the Admin panel.</td>
+                            </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
             </div>
             <div class="bg-gray-900 rounded-3xl p-8 shadow-xl flex flex-col gap-4 border border-gray-800">
                 <div class="flex items-center gap-3 mb-2">
-                    <div class="text-2xl animate-pulse">✨</div>
+                    <div class="text-2xl animate-pulse"> </div>
                     <h2 class="text-xl font-bold text-green-400">AI Insights</h2>
                 </div>
-                <p class="text-gray-300 italic leading-relaxed text-lg">"Your SIP discipline is excellent. By maintaining your ₹12,000 monthly SIP and stepping it up by 10% annually, you are on track to reach a ₹1 Crore corpus in exactly 14 years."</p>
+                <p class="text-gray-300 italic leading-relaxed text-lg">"Your SIP discipline is excellent. By maintaining your  12,000 monthly SIP and stepping it up by 10% annually, you are on track to reach a  1 Crore corpus in exactly 14 years."</p>
             </div>
         </div>
     </main>

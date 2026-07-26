@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import UserPortfolio, BrokerCredentials, AssetHolding
 
-# Register your models here.
+admin.site.register(UserPortfolio)
+admin.site.register(BrokerCredentials)
+admin.site.register(AssetHolding)

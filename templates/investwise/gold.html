@@ -18,7 +18,7 @@
             <a href="{% url 'dashboard' %}" class="text-yellow-600 hover:text-yellow-800 font-bold text-xl transition-colors">&larr; Back to Dashboard</a>
         </div>
         <div class="flex items-center gap-2">
-            <div class="w-10 h-10 bg-yellow-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-md">🪙</div>
+            <div class="w-10 h-10 bg-yellow-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-md"> </div>
             <span class="font-bold text-xl">Gold & SGBs</span>
         </div>
     </nav>
@@ -27,7 +27,8 @@
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end">
                 <div>
                     <p class="text-yellow-100 text-lg mb-2 font-medium">Total Gold Holdings</p>
-                    <h1 class="text-5xl font-extrabold tracking-tight">₹{{ total_current }}</h1>
+                    <h1 class="text-5xl font-extrabold tracking-tight"> {{ total_current }}</h1>
+                    <p class="text-blue-200 text-sm mt-3 font-medium">Total Invested: ₹ {{ total_invested }}</p>
                 </div>
             </div>
         </div>
@@ -52,17 +53,22 @@
                                     {{ asset.name }}
                                 </td>
                                 <td class="py-4">{{ asset.qty }}</td>
-                                <td class="py-4 text-right">₹{{ asset.avg_price|floatformat:2 }}</td>
-                                <td class="py-4 font-semibold text-right">₹{{ asset.ltp|floatformat:2 }}</td>
+                                <td class="py-4 text-right"> {{ asset.avg_price|floatformat:2 }}</td>
+                                <td class="py-4 font-semibold text-right"> {{ asset.ltp|floatformat:2 }}</td>
                             </tr>
                             {% endfor %}
+                            {% if not portfolio %}
+                            <tr>
+                                <td colspan="4" class="text-center py-6 text-gray-500">No gold holdings found. Add them via the Admin panel.</td>
+                            </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
             </div>
             <div class="bg-gray-900 rounded-3xl p-8 shadow-xl flex flex-col gap-4 border border-gray-800">
                 <div class="flex items-center gap-3 mb-2">
-                    <div class="text-2xl animate-pulse">✨</div>
+                    <div class="text-2xl animate-pulse"> </div>
                     <h2 class="text-xl font-bold text-yellow-400">AI Insights</h2>
                 </div>
                 <p class="text-gray-300 italic leading-relaxed text-lg">"Your gold allocation serves as an excellent hedge against inflation. Holding your SGBs until maturity will give you completely tax-free capital gains alongside the 2.5% semi-annual interest."</p>

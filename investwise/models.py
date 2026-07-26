@@ -14,7 +14,6 @@ class BrokerCredentials(models.Model):
         ('ZERODHA', 'Zerodha Kite'),
         ('UPSTOX', 'Upstox'),
     ]
-
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='broker_creds')
     broker_name = models.CharField(max_length=50, choices=BROKER_CHOICES, default='ANGELONE')
     api_key = models.CharField(max_length=255, blank=True, null=True)
@@ -25,3 +24,20 @@ class BrokerCredentials(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.get_broker_name_display()}"
+
+class AssetHolding(models.Model):
+    ASSET_TYPES = [
+        ('MF', 'Mutual Fund'),
+        ('GOLD', 'Gold & SGB'),
+        ('REIT', 'REIT'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='manual_holdings')
+    asset_type = models.CharField(max_length=10, choices=ASSET_TYPES)
+    symbol = models.CharField(max_length=50, help_text="Yahoo Finance Ticker (e.g. MON100.NS)") 
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=10, help_text="Short Display Code (e.g. PP, SGB)")
+    qty = models.FloatField(default=0.0)
+    avg_price = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name} ({self.get_asset_type_display()})"
