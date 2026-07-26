@@ -6,79 +6,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>InvestWise AI - Gold & SGBs</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>IA</text></svg>">
-    <link rel="stylesheet" href="{% static 'css/shared_style.css' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .gold-hero { background: linear-gradient(135deg, #b45309, #eab308); box-shadow: 0 10px 25px -5px rgba(234, 179, 8, 0.4); }
+    </style>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="nav-left">
-            <a href="investwise_dashboard.html" class="back-btn">←</a>
-            <div class="logo-icon" style="background-color: #ca8a04;">🪙</div>
-            <span class="brand-name">Gold & SGBs</span>
+<body class="min-h-screen text-gray-800">
+    <nav class="bg-white px-8 py-4 shadow-sm flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'dashboard' %}" class="text-yellow-600 hover:text-yellow-800 font-bold text-xl transition-colors">&larr; Back to Dashboard</a>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-10 h-10 bg-yellow-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-md">🪙</div>
+            <span class="font-bold text-xl">Gold & SGBs</span>
         </div>
     </nav>
-
-    <main class="page-container">
-        <!-- Asset Overview -->
-        <div class="asset-header" style="background: linear-gradient(135deg, #ca8a04, #eab308);">
-            <div>
-                <p class="asset-title" style="color: #fef08a;">Total Gold Valuation</p>
-                <h1 class="asset-total">₹3,50,000</h1>
-                <div class="asset-returns">
-                    <span class="badge-up" style="background: rgba(0,0,0,0.2); color: white;">+8.4%</span>
-                    <span>Profit: ₹27,140</span>
-                </div>
-            </div>
-            <div class="metric-grid">
-                <div class="metric-item">
-                    <p class="metric-label">Total Grams</p>
-                    <p class="metric-val">50g</p>
-                </div>
-                <div class="metric-item">
-                    <p class="metric-label">Fixed Interest</p>
-                    <p class="metric-val text-green">2.5% p.a.</p>
+    <main class="max-w-6xl mx-auto p-6 mt-4 flex flex-col gap-8">
+        <div class="gold-hero rounded-3xl p-8 text-white relative overflow-hidden">
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end">
+                <div>
+                    <p class="text-yellow-100 text-lg mb-2 font-medium">Total Gold Holdings</p>
+                    <h1 class="text-5xl font-extrabold tracking-tight">₹{{ total_current }}</h1>
                 </div>
             </div>
         </div>
-
-        <div class="content-grid">
-            <!-- Holdings Table -->
-            <div class="card">
-                <h2 class="card-title">Sovereign Gold Bonds (SGBs)</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Series</th>
-                            <th>Units (g)</th>
-                            <th class="text-right">Issue Price</th>
-                            <th class="text-right">Current Value</th>
-                            <th class="text-right">Maturity</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>SGB 2023-24 Series I</td>
-                            <td>30</td>
-                            <td class="text-right">₹5,926.00</td>
-                            <td class="text-right">₹2,10,000.00</td>
-                            <td class="text-right">Jun 2031</td>
-                        </tr>
-                        <tr>
-                            <td>SGB 2021-22 Series IV</td>
-                            <td>20</td>
-                            <td class="text-right">₹4,807.00</td>
-                            <td class="text-right">₹1,40,000.00</td>
-                            <td class="text-right">Jul 2029</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-200 lg:col-span-2">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Your Sovereign Gold Bonds</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-gray-100 text-gray-500 text-sm uppercase tracking-wider">
+                                <th class="py-4 font-semibold">Series / Asset</th>
+                                <th class="py-4 font-semibold">Units</th>
+                                <th class="py-4 font-semibold text-right">Issue Price</th>
+                                <th class="py-4 font-semibold text-right">LTP (Live)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700">
+                            {% for asset in portfolio %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <td class="py-4 font-bold flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex justify-center items-center font-bold text-xs">{{ asset.code }}</div>
+                                    {{ asset.name }}
+                                </td>
+                                <td class="py-4">{{ asset.qty }}</td>
+                                <td class="py-4 text-right">₹{{ asset.avg_price|floatformat:2 }}</td>
+                                <td class="py-4 font-semibold text-right">₹{{ asset.ltp|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-
-            <!-- Insights Side Panel -->
-            <div class="card" style="background-color: #111827; color: white;">
-                <h2 class="card-title" style="color: white;">✨ AI Insights</h2>
-                <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6; font-style: italic;">
-                    "Your sovereign gold bonds act as an excellent hedge against inflation and equity market volatility. You are successfully earning a 2.5% fixed interest. Holding these until maturity will also ensure your capital gains remain entirely tax-free."
-                </p>
+            <div class="bg-gray-900 rounded-3xl p-8 shadow-xl flex flex-col gap-4 border border-gray-800">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="text-2xl animate-pulse">✨</div>
+                    <h2 class="text-xl font-bold text-yellow-400">AI Insights</h2>
+                </div>
+                <p class="text-gray-300 italic leading-relaxed text-lg">"Your gold allocation serves as an excellent hedge against inflation. Holding your SGBs until maturity will give you completely tax-free capital gains alongside the 2.5% semi-annual interest."</p>
             </div>
         </div>
     </main>

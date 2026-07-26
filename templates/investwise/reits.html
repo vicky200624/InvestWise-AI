@@ -6,79 +6,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>InvestWise AI - REITs</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>IA</text></svg>">
-    <link rel="stylesheet" href="{% static 'css/shared_style.css' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .reit-hero { background: linear-gradient(135deg, #9a3412, #f97316); box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.4); }
+    </style>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="nav-left">
-            <a href="investwise_dashboard.html" class="back-btn">←</a>
-            <div class="logo-icon" style="background-color: #ea580c;">🏢</div>
-            <span class="brand-name">REITs</span>
+<body class="min-h-screen text-gray-800">
+    <nav class="bg-white px-8 py-4 shadow-sm flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'dashboard' %}" class="text-orange-600 hover:text-orange-800 font-bold text-xl transition-colors">&larr; Back to Dashboard</a>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-10 h-10 bg-orange-500 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-md">🏢</div>
+            <span class="font-bold text-xl">REITs</span>
         </div>
     </nav>
-
-    <main class="page-container">
-        <!-- Asset Overview -->
-        <div class="asset-header" style="background: linear-gradient(135deg, #9a3412, #c2410c);">
-            <div>
-                <p class="asset-title" style="color: #ffedd5;">Total REIT Valuation</p>
-                <h1 class="asset-total">₹1,85,000</h1>
-                <div class="asset-returns">
-                    <span class="badge-up" style="background: rgba(0,0,0,0.2); color: white;">+6.2%</span>
-                    <span>Dividends Earned: ₹11,470</span>
-                </div>
-            </div>
-            <div class="metric-grid">
-                <div class="metric-item">
-                    <p class="metric-label">Avg Dividend Yield</p>
-                    <p class="metric-val text-green">6.5%</p>
-                </div>
-                <div class="metric-item">
-                    <p class="metric-label">Active Trusts</p>
-                    <p class="metric-val">2</p>
+    <main class="max-w-6xl mx-auto p-6 mt-4 flex flex-col gap-8">
+        <div class="reit-hero rounded-3xl p-8 text-white relative overflow-hidden">
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end">
+                <div>
+                    <p class="text-orange-100 text-lg mb-2 font-medium">Total REITs Value</p>
+                    <h1 class="text-5xl font-extrabold tracking-tight">₹{{ total_current }}</h1>
                 </div>
             </div>
         </div>
-
-        <div class="content-grid">
-            <!-- Holdings Table -->
-            <div class="card">
-                <h2 class="card-title">Real Estate Portfolio</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>REIT Name</th>
-                            <th>Qty</th>
-                            <th class="text-right">Avg Cost</th>
-                            <th class="text-right">LTP</th>
-                            <th class="text-right">Total Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Embassy Office Parks</td>
-                            <td>300</td>
-                            <td class="text-right">₹320.00</td>
-                            <td class="text-right">₹370.00</td>
-                            <td class="text-right">₹1,11,000</td>
-                        </tr>
-                        <tr>
-                            <td>Mindspace Business Parks</td>
-                            <td>220</td>
-                            <td class="text-right">₹315.00</td>
-                            <td class="text-right">₹336.00</td>
-                            <td class="text-right">₹73,920</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-200 lg:col-span-2">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Commercial Real Estate Holdings</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-gray-100 text-gray-500 text-sm uppercase tracking-wider">
+                                <th class="py-4 font-semibold">Trust Name</th>
+                                <th class="py-4 font-semibold">Units</th>
+                                <th class="py-4 font-semibold text-right">Avg Price</th>
+                                <th class="py-4 font-semibold text-right">LTP (Live)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700">
+                            {% for reit in portfolio %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <td class="py-4 font-bold flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex justify-center items-center font-bold text-xs">{{ reit.code }}</div>
+                                    {{ reit.name }}
+                                </td>
+                                <td class="py-4">{{ reit.qty }}</td>
+                                <td class="py-4 text-right">₹{{ reit.avg_price|floatformat:2 }}</td>
+                                <td class="py-4 font-semibold text-right">₹{{ reit.ltp|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-
-            <!-- Insights Side Panel -->
-            <div class="card" style="background-color: #111827; color: white;">
-                <h2 class="card-title" style="color: white;">✨ AI Insights</h2>
-                <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6; font-style: italic;">
-                    "Your commercial real estate investments are generating a stable 6.5% dividend yield, contributing nicely to your passive income pool. Consider reinvesting these quarterly payouts back into mutual funds to leverage compound interest."
-                </p>
+            <div class="bg-gray-900 rounded-3xl p-8 shadow-xl flex flex-col gap-4 border border-gray-800">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="text-2xl animate-pulse">✨</div>
+                    <h2 class="text-xl font-bold text-orange-400">AI Insights</h2>
+                </div>
+                <p class="text-gray-300 italic leading-relaxed text-lg">"REITs are providing consistent cash flow to your portfolio through regular dividend distributions. Your exposure to tech-parks in major IT hubs keeps rental yields stable despite market volatility."</p>
             </div>
         </div>
     </main>
