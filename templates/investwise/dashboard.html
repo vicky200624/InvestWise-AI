@@ -7,25 +7,13 @@
     <title>InvestWise AI - Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>IA</text></svg>">
     
-    <!-- Tailwind CSS Engine -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
-        body {
-            background-color: #f8fafc;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        .net-worth-card {
-            background: linear-gradient(135deg, #6b21a8, #8b5cf6);
-            box-shadow: 0 15px 30px -10px rgba(107, 33, 168, 0.4);
-        }
-        .asset-card-hover {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .asset-card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08);
-        }
+        body { background-color: #f8fafc; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .net-worth-card { background: linear-gradient(135deg, #6b21a8, #8b5cf6); box-shadow: 0 15px 30px -10px rgba(107, 33, 168, 0.4); }
+        .asset-card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .asset-card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08); }
     </style>
 </head>
 <body class="min-h-screen text-gray-800 pb-12">
@@ -33,19 +21,15 @@
     <!-- Top Navigation Bar -->
     <nav class="bg-white px-8 py-4 shadow-sm flex items-center justify-between sticky top-0 z-50">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-purple-700 text-white rounded-xl flex items-center justify-center font-extrabold text-lg shadow-md">
-                IA
-            </div>
+            <div class="w-10 h-10 bg-purple-700 text-white rounded-xl flex items-center justify-center font-extrabold text-lg shadow-md">IA</div>
             <span class="font-bold text-xl text-gray-900 tracking-tight">InvestWise</span>
         </div>
 
         <div class="flex items-center gap-4">
-            
             <!-- User Manual Link -->
             <a href="{% url 'user_manual' %}" target="_blank" class="text-sm font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors hidden sm:block border border-purple-100">
                 📖 User Manual
             </a>
-
             <div class="text-right hidden sm:block">
                 <p class="text-sm font-bold text-gray-800">{{ user.first_name|default:user.username }}</p>
                 <p class="text-xs text-gray-500">{{ user.email }}</p>
@@ -59,45 +43,49 @@
         </div>
     </nav>
 
-    <!-- Main Dashboard Container -->
+    <!-- Main Dashboard -->
     <main class="max-w-7xl mx-auto p-6 mt-4">
-        
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <!-- LEFT COLUMN (2/3 width) -->
+            <!-- LEFT COLUMN -->
             <div class="lg:col-span-2 flex flex-col gap-6">
                 
-                <!-- Main Net Worth Banner -->
+                <!-- Dynamic Net Worth Banner -->
                 <div class="net-worth-card rounded-3xl p-8 text-white relative overflow-hidden">
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="text-purple-200 text-sm font-medium uppercase tracking-wider mb-1">Total Net Worth</p>
                             <h1 class="text-5xl font-extrabold tracking-tight mb-4">₹{{ total_value }}</h1>
+                            
                             <div class="flex items-center gap-3">
+                                {% if is_positive %}
                                 <span class="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-500/30">
-                                    +12.5%
+                                    {{ pnl_percentage }}%
                                 </span>
-                                <span class="text-xs text-purple-200">Total Returns: ₹1,55,625</span>
+                                {% else %}
+                                <span class="bg-red-500/20 text-red-300 px-3 py-1 rounded-lg text-xs font-bold border border-red-500/30">
+                                    {{ pnl_percentage }}%
+                                </span>
+                                {% endif %}
+                                <span class="text-xs text-purple-200">Total P&L: ₹{{ total_pnl }}</span>
                             </div>
                         </div>
                         
+                        <!-- Dynamic Health Score -->
                         <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-center">
                             <p class="text-[10px] text-purple-200 font-bold uppercase tracking-widest">Health</p>
-                            <p class="text-2xl font-extrabold text-white">{{ health_score|default:"88" }}</p>
+                            <p class="text-2xl font-extrabold text-white">{{ health_score }}</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Angel One Connect Prompt (Shows if no broker connected) -->
+                <!-- Broker Connection Prompt -->
                 {% if not has_broker_connected %}
                 <div class="bg-purple-900 text-white p-6 rounded-3xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-purple-800">
                     <div>
-                        <h3 class="font-bold text-lg flex items-center gap-2">
-                            <span>🔗</span> Connect Your Angel One Account
-                        </h3>
-                        <p class="text-purple-200 text-sm mt-1">Link your API keys once to enable live, automatic portfolio tracking across all assets.</p>
+                        <h3 class="font-bold text-lg flex items-center gap-2"><span>🔗</span> Connect Your Angel One Account</h3>
+                        <p class="text-purple-200 text-sm mt-1">Link your API keys once to enable live, automatic portfolio tracking.</p>
                     </div>
-                    
                     <div class="flex gap-3 shrink-0">
                         <a href="{% url 'user_manual' %}" target="_blank" class="bg-purple-800 text-purple-200 px-4 py-2.5 rounded-xl font-bold hover:bg-purple-700 transition-colors border border-purple-700 shadow-sm flex items-center gap-2">
                             📖 Setup Guide
@@ -109,152 +97,105 @@
                 </div>
                 {% endif %}
 
-                <!-- Asset Allocation Cockpit -->
+                <!-- Live Portfolio Cards -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                     <h2 class="text-xl font-bold text-gray-800 mb-6">Your Personal Portfolio (Live)</h2>
-                    
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         
-                        <!-- Equity Stocks Card -->
+                        <!-- Equity -->
                         <a href="{% url 'stocks' %}" class="asset-card-hover bg-slate-50 border border-gray-100 p-5 rounded-2xl block text-decoration-none">
-                            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">
-                                📈
-                            </div>
+                            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">📈</div>
                             <h3 class="font-semibold text-gray-700 text-sm">Equity Stocks</h3>
                             <p class="text-2xl font-extrabold text-gray-900 mt-1">₹{{ personal_values.stocks }}</p>
-                            <p class="text-xs text-purple-700 font-bold mt-2">3 Active Holdings</p>
+                            <p class="text-xs text-purple-700 font-bold mt-2">{{ holdings_count }} Active Holding{% if holdings_count != 1 %}s{% endif %}</p>
                         </a>
 
-                        <!-- Mutual Funds Card -->
+                        <!-- Mutual Funds -->
                         <a href="{% url 'mutual_funds' %}" class="asset-card-hover bg-slate-50 border border-gray-100 p-5 rounded-2xl block text-decoration-none">
-                            <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">
-                                📊
-                            </div>
+                            <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">📊</div>
                             <h3 class="font-semibold text-gray-700 text-sm">Mutual Funds</h3>
                             <p class="text-2xl font-extrabold text-gray-900 mt-1">₹{{ personal_values.mutual_funds }}</p>
-                            <p class="text-xs text-purple-700 font-bold mt-2">3 Active SIPs</p>
+                            <p class="text-xs text-gray-400 font-bold mt-2">0 Active SIPs</p>
                         </a>
 
-                        <!-- Gold Card -->
+                        <!-- Gold -->
                         <a href="{% url 'gold' %}" class="asset-card-hover bg-slate-50 border border-gray-100 p-5 rounded-2xl block text-decoration-none">
-                            <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">
-                                🪙
-                            </div>
+                            <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">🪙</div>
                             <h3 class="font-semibold text-gray-700 text-sm">Gold & SGBs</h3>
                             <p class="text-2xl font-extrabold text-gray-900 mt-1">₹{{ personal_values.gold }}</p>
-                            <p class="text-xs text-purple-700 font-bold mt-2">40g Allocated</p>
+                            <p class="text-xs text-gray-400 font-bold mt-2">0g Allocated</p>
                         </a>
 
-                        <!-- REITs Card -->
+                        <!-- REITs -->
                         <a href="{% url 'reits' %}" class="asset-card-hover bg-slate-50 border border-gray-100 p-5 rounded-2xl block text-decoration-none">
-                            <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">
-                                🏢
-                            </div>
+                            <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center font-bold text-lg mb-3">🏢</div>
                             <h3 class="font-semibold text-gray-700 text-sm">REITs</h3>
                             <p class="text-2xl font-extrabold text-gray-900 mt-1">₹{{ personal_values.reits }}</p>
-                            <p class="text-xs text-purple-700 font-bold mt-2">2 Active Trusts</p>
+                            <p class="text-xs text-gray-400 font-bold mt-2">0 Active Trusts</p>
                         </a>
-
                     </div>
                 </div>
-
             </div>
 
-            <!-- RIGHT COLUMN (1/3 width Sidebar) -->
+            <!-- RIGHT COLUMN -->
             <div class="flex flex-col gap-6">
-                
-                <!-- AI Advisory Section -->
+                <!-- AI Advisory -->
                 <div class="bg-gray-900 text-white rounded-3xl p-6 shadow-xl border border-gray-800">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="text-xl animate-pulse">✨</div>
                         <h2 class="text-lg font-bold text-purple-300">AI Advisory</h2>
                     </div>
-                    
                     <p class="text-gray-300 text-sm italic leading-relaxed mb-6">
                         "Your portfolio is heavily weighted in equities. Consider adding Sovereign Gold Bonds to optimize risk."
                     </p>
-
                     <div class="flex gap-2">
-                        <button onclick="askGemini()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-colors text-sm shadow-md">
-                            Ask Gemini
-                        </button>
-                        <button onclick="playTTS()" class="w-12 bg-gray-800 hover:bg-gray-700 text-white rounded-xl flex items-center justify-center font-bold text-lg border border-gray-700">
-                            🔊
-                        </button>
+                        <button onclick="askGemini()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-colors text-sm shadow-md">Ask Gemini</button>
+                        <button onclick="playTTS()" class="w-12 bg-gray-800 hover:bg-gray-700 text-white rounded-xl flex items-center justify-center font-bold text-lg border border-gray-700">🔊</button>
                     </div>
                 </div>
 
-                <!-- Quick Trade Brokers Section -->
+                <!-- Quick Trade -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                     <h3 class="font-bold text-gray-800 text-base mb-4">Quick Trade</h3>
                     <div class="flex flex-col gap-3">
-                        
-                        <!-- Angel One Direct Link -->
-                        <a href="https://trade.angelone.in/" target="_blank" rel="noopener noreferrer" 
-                           class="flex items-center justify-between p-3.5 rounded-2xl bg-orange-50 hover:bg-orange-100 border border-orange-100 transition-colors">
+                        <a href="https://trade.angelone.in/" target="_blank" class="flex items-center justify-between p-3.5 rounded-2xl bg-orange-50 hover:bg-orange-100 border border-orange-100 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-sm">
-                                    📈
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-gray-900 text-sm">Angel One</h4>
-                                    <p class="text-xs text-gray-500">Buy & Sell Equities</p>
-                                </div>
+                                <div class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-sm">📈</div>
+                                <div><h4 class="font-bold text-gray-900 text-sm">Angel One</h4><p class="text-xs text-gray-500">Buy & Sell Equities</p></div>
                             </div>
                             <span class="text-purple-700 font-bold text-lg">↗</span>
                         </a>
-
-                        <!-- Zerodha Kite Direct Link -->
-                        <a href="https://kite.zerodha.com/" target="_blank" rel="noopener noreferrer" 
-                           class="flex items-center justify-between p-3.5 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-100 transition-colors">
+                        <a href="https://kite.zerodha.com/" target="_blank" class="flex items-center justify-between p-3.5 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-100 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-red-500 text-white flex items-center justify-center font-bold text-sm">
-                                    🪁
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-gray-900 text-sm">Zerodha Kite</h4>
-                                    <p class="text-xs text-gray-500">Execute Trades</p>
-                                </div>
+                                <div class="w-9 h-9 rounded-xl bg-red-500 text-white flex items-center justify-center font-bold text-sm">🪁</div>
+                                <div><h4 class="font-bold text-gray-900 text-sm">Zerodha Kite</h4><p class="text-xs text-gray-500">Execute Trades</p></div>
                             </div>
                             <span class="text-purple-700 font-bold text-lg">↗</span>
                         </a>
-
                     </div>
                 </div>
 
-                <!-- Security & Learning Section -->
+                <!-- Security -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
                     <h3 class="font-bold text-gray-800 text-base">Awareness & Security</h3>
-                    
                     <div class="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-100">
                         <div class="text-xl">⚠️</div>
-                        <div>
-                            <h4 class="font-bold text-gray-900 text-sm">Scam Alerts</h4>
-                            <p class="text-xs text-gray-500">Zero active threats detected</p>
-                        </div>
+                        <div><h4 class="font-bold text-gray-900 text-sm">Scam Alerts</h4><p class="text-xs text-gray-500">Zero active threats detected</p></div>
                     </div>
-
                     <div class="flex items-center gap-3 p-3.5 rounded-2xl bg-blue-50 border border-blue-100">
                         <div class="text-xl">📚</div>
-                        <div>
-                            <h4 class="font-bold text-gray-900 text-sm">SEBI Learning Hub</h4>
-                            <p class="text-xs text-gray-500">Resume micro-lesson on Tax</p>
-                        </div>
+                        <div><h4 class="font-bold text-gray-900 text-sm">SEBI Learning Hub</h4><p class="text-xs text-gray-500">Resume micro-lesson on Tax</p></div>
                     </div>
                 </div>
-
             </div>
-
         </div>
-
     </main>
 
-    <!-- AI Advisor Interactivity JS -->
+    <!-- AI Interactivity Scripts -->
     <script>
         async function askGemini() {
             const promptText = prompt("Ask InvestWise AI Advisor:");
             if (!promptText) return;
-
             try {
                 const response = await fetch("{% url 'ai_advisor' %}", {
                     method: "POST",
@@ -262,14 +203,9 @@
                     body: JSON.stringify({ query: promptText })
                 });
                 const data = await response.json();
-                if (data.response) {
-                    alert("AI Advisory:\n\n" + data.response);
-                } else {
-                    alert("Error: " + (data.error || "Failed to generate response"));
-                }
-            } catch (err) {
-                alert("Server request failed.");
-            }
+                if (data.response) alert("AI Advisory:\n\n" + data.response);
+                else alert("Error: " + (data.error || "Failed to generate response"));
+            } catch (err) { alert("Server request failed."); }
         }
 
         async function playTTS() {
@@ -283,14 +219,9 @@
                 if (response.ok) {
                     const blob = await response.blob();
                     const audioUrl = URL.createObjectURL(blob);
-                    const audio = new Audio(audioUrl);
-                    audio.play();
-                } else {
-                    alert("TTS audio generation failed.");
-                }
-            } catch (err) {
-                alert("Failed to connect to audio endpoint.");
-            }
+                    new Audio(audioUrl).play();
+                } else alert("TTS audio generation failed.");
+            } catch (err) { alert("Failed to connect to audio endpoint."); }
         }
     </script>
 </body>

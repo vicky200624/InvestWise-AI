@@ -45,7 +45,6 @@ def get_user_live_holdings(user):
                 
         elif creds.broker_name == 'ZERODHA':
             print("Zerodha API integration triggered (Placeholder)")
-            # You would put the kiteconnect SDK logic here later
             return []
             
         elif creds.broker_name == 'UPSTOX':
@@ -57,24 +56,6 @@ def get_user_live_holdings(user):
     except Exception as e:
         print(f"Error fetching holdings: {e}")
         return []
-
-@login_required(login_url='login')
-def connect_broker_view(request):
-    """Allows users to select their broker and input their keys."""
-    creds, _ = BrokerCredentials.objects.get_or_create(user=request.user)
-
-    if request.method == 'POST':
-        creds.broker_name = request.POST.get('broker_name', 'ANGELONE')
-        creds.api_key = request.POST.get('api_key', '').strip()
-        creds.client_id = request.POST.get('client_id', '').strip()
-        creds.pin = request.POST.get('pin', '').strip()
-        creds.totp_secret = request.POST.get('totp_secret', '').strip()
-        creds.save()
-        
-        messages.success(request, f"{creds.get_broker_name_display()} credentials saved!")
-        return redirect('dashboard')
-
-    return render(request, 'investwise/connect_broker.html', {'creds': creds})
 
 def get_live_prices(ticker_list):
     """Fallback fetcher for yfinance (used in individual asset pages)."""
@@ -147,56 +128,93 @@ def logout_view(request):
 # BROKER SETUP VIEW
 # ==============================================================================
 
+@login_required(login_url='login')
+def connect_broker_view(request):
+    """Allows users to select their broker and input their keys."""
+    creds, _ = BrokerCredentials.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        creds.broker_name = request.POST.get('broker_name', 'ANGELONE')
+        creds.api_key = request.POST.get('api_key', '').strip()
+        creds.client_id = request.POST.get('client_id', '').strip()
+        creds.pin = request.POST.get('pin', '').strip()
+        creds.totp_secret = request.POST.get('totp_secret', '').strip()
+        creds.save()
+        
+        messages.success(request, f"{creds.get_broker_name_display()} credentials saved!")
+        return redirect('dashboard')
+
+    return render(request, 'investwise/connect_broker.html', {'creds': creds})
+
+
 # ==============================================================================
 # MAIN DASHBOARD VIEW
 # ==============================================================================
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import BrokerCredentials
-from SmartApi import SmartConnect
-import pyotp
-
-# ... (Keep your get_user_live_holdings function as it is) ...
 
 @login_required(login_url='login')
 def dashboard_view(request):
     user = request.user
     
     # 1. Fetch live data from Angel One
-    live_holdings = get_user_live_holdings(user)
     has_broker = BrokerCredentials.objects.filter(user=user).exists()
+    live_holdings = get_user_live_holdings(user) if has_broker else None
     
-    # 2. Calculate the real totals from Angel One
-    real_stocks_total = 0.0
+    # 2. Calculate real numbers from Angel One
+    stocks_current_value = 0.0
+    stocks_invested_value = 0.0
+    holdings_count = 0
     
     if live_holdings:
+        holdings_count = len(live_holdings)
         for item in live_holdings:
-            # Angel One's API uses 'quantity' and 'ltp' (Last Traded Price)
             qty = float(item.get('quantity', 0))
             ltp = float(item.get('ltp', 0))
-            real_stocks_total += (qty * ltp)
+            avg_price = float(item.get('averageprice', 0))
             
-    # 3. IF NO DATA (Empty Account), INJECT DUMMY DATA FOR UI TESTING
-    if has_broker and real_stocks_total == 0:
-        stocks_total = 145000.50
-        mf_total = 65000.00
-        gold_total = 24000.00
-        reits_total = 12000.00
-    else:
-        # Otherwise, use the real data
-        stocks_total = real_stocks_total
-        mf_total = 0.0  # (You can build a DB model for this later!)
-        gold_total = 0.0
-        reits_total = 0.0
-        
-    total_net_worth = stocks_total + mf_total + gold_total + reits_total
+            stocks_current_value += (qty * ltp)
+            stocks_invested_value += (qty * avg_price)
+
+    # 3. Real Returns Calculation
+    total_pnl = stocks_current_value - stocks_invested_value
+    pnl_percentage = (total_pnl / stocks_invested_value * 100) if stocks_invested_value > 0 else 0.0
     
-    # 4. Send the formatted numbers to your HTML
+    # External assets (0.0 until built out)
+    mf_total = 0.0
+    gold_total = 0.0
+    reits_total = 0.0
+
+    total_net_worth = stocks_current_value + mf_total + gold_total + reits_total
+
+    # 4. Dynamic Health Score Calculation
+    health_score = 50  # Base score for empty portfolios
+    
+    if stocks_invested_value > 0:
+        health_score = 70  # Baseline for active investors
+        
+        # Adjust based on performance (Max +20 for profits, -20 for losses)
+        if pnl_percentage > 0:
+            health_score += min(20, int(pnl_percentage))
+        else:
+            health_score -= min(20, abs(int(pnl_percentage)))
+            
+    # Future Diversification Bonus
+    if mf_total > 0: health_score += 5
+    if gold_total > 0: health_score += 5
+    
+    # Ensure score stays between 0 and 100
+    health_score = max(0, min(100, health_score))
+
+    # 5. Send to Template
     context = {
         'has_broker_connected': has_broker,
         'total_value': f"{total_net_worth:,.2f}",
+        'total_pnl': f"{total_pnl:+,.2f}",
+        'pnl_percentage': f"{pnl_percentage:+.2f}",
+        'is_positive': total_pnl >= 0,
+        'holdings_count': holdings_count,
+        'health_score': health_score,
         'personal_values': {
-            'stocks': f"{stocks_total:,.2f}",
+            'stocks': f"{stocks_current_value:,.2f}",
             'mutual_funds': f"{mf_total:,.2f}",
             'gold': f"{gold_total:,.2f}",
             'reits': f"{reits_total:,.2f}"
@@ -207,40 +225,18 @@ def dashboard_view(request):
 
 
 # ==============================================================================
-# DETAILED ASSET VIEWS (Using yfinance fallback data)
+# INDIVIDUAL ASSET VIEWS
 # ==============================================================================
 
 @login_required(login_url='login')
 def stocks_view(request):
-    portfolio = [
-        {'symbol': 'RELIANCE.NS', 'name': 'Reliance Ind.', 'code': 'RELI', 'qty': 50, 'avg_price': 2400.00},
-        {'symbol': 'TCS.NS', 'name': 'TCS', 'code': 'TCS', 'qty': 20, 'avg_price': 3500.00},
-        {'symbol': 'HDFCBANK.NS', 'name': 'HDFC Bank', 'code': 'HDFC', 'qty': 100, 'avg_price': 1600.00},
-    ]
+    """Renders the detailed Equity Stocks page with live data."""
+    user = request.user
+    has_broker = BrokerCredentials.objects.filter(user=user).exists()
+    live_holdings = get_user_live_holdings(user) if has_broker else []
     
-    live_prices = get_live_prices([item['symbol'] for item in portfolio])
-    total_invested = 0
-    total_current = 0
-    
-    for item in portfolio:
-        item['ltp'] = live_prices.get(item['symbol'], item['avg_price'])
-        item['current_value'] = item['qty'] * item['ltp']
-        item['invested_value'] = item['qty'] * item['avg_price']
-        item['return_pct'] = round(((item['ltp'] - item['avg_price']) / item['avg_price']) * 100, 2)
-        item['is_profit'] = item['return_pct'] >= 0
-        
-        total_invested += item['invested_value']
-        total_current += item['current_value']
-
-    total_profit = total_current - total_invested
-    total_profit_pct = round((total_profit / total_invested) * 100, 2) if total_invested > 0 else 0
-
     context = {
-        'portfolio': portfolio,
-        'total_current': f"{total_current:,.2f}",
-        'total_profit': f"{total_profit:,.2f}",
-        'total_profit_pct': total_profit_pct,
-        'is_total_profit': total_profit >= 0,
+        'holdings': live_holdings
     }
     return render(request, 'investwise/stocks.html', context)
 
