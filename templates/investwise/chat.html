@@ -14,8 +14,8 @@
 <body class="bg-[#171717] text-gray-100 h-screen flex font-sans overflow-hidden">
 
     <!-- Custom Professional Delete Modal -->
-    <div id="delete-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#212121] border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4">
+    <div id="delete-modal" onclick="handleBackdropClick(event)" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 cursor-pointer">
+        <div class="bg-[#212121] border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 cursor-default" onclick="event.stopPropagation()">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center text-lg font-bold border border-red-500/20">⚠️</div>
                 <div>
@@ -50,7 +50,7 @@
                         {{ sess.title }}
                     </a>
                     <!-- Triggers Professional Modal -->
-                    <button type="button" onclick="openDeleteModal('{% url 'delete_chat_session' sess.id %}')" class="hidden group-hover:block pr-3 text-gray-400 hover:text-red-400 text-xs" title="Delete chat">
+                    <button type="button" onclick="openDeleteModal(event, '{% url 'delete_chat_session' sess.id %}')" class="hidden group-hover:block pr-3 text-gray-400 hover:text-red-400 text-xs" title="Delete chat">
                         🗑️
                     </button>
                 </div>
@@ -123,10 +123,13 @@
         const sendBtn = document.getElementById('send-btn');
         const activeSessionId = "{{ current_session.id|default:'' }}";
 
+        // Scroll to bottom on load
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
         // Modal Controls
-        function openDeleteModal(deleteUrl) {
+        function openDeleteModal(e, deleteUrl) {
+            e.preventDefault(); // Prevents following links
+            e.stopPropagation(); // Stops the click from hitting the parent div
             document.getElementById('confirm-delete-btn').href = deleteUrl;
             document.getElementById('delete-modal').classList.remove('hidden');
         }
@@ -135,6 +138,14 @@
             document.getElementById('delete-modal').classList.add('hidden');
         }
 
+        function handleBackdropClick(e) {
+            // Only close if clicking exactly on the dark background, not the modal itself
+            if (e.target.id === 'delete-modal') {
+                closeDeleteModal();
+            }
+        }
+
+        // Chat Message Logic
         function appendMessage(sender, text) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex gap-4 w-full ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
@@ -191,6 +202,7 @@
 
                 if (data.response) {
                     appendMessage('ai', data.response);
+                    // Reload if new session created to show in sidebar
                     if (!activeSessionId && data.session_id) {
                         window.location.href = `/chat/${data.session_id}/`;
                     }

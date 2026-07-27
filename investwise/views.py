@@ -490,9 +490,10 @@ def get_vector_store():
 from django.db.models import Q
 from .models import BrokerCredentials, ChatSession, ChatMessage
 
-@login_required(login_url='login')
+
 @login_required(login_url='login')
 def chat_ui_view(request, session_id=None):
+    """Renders the chat UI. If no session is provided, it stays completely blank."""
     sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
     
     current_session = None
@@ -504,9 +505,8 @@ def chat_ui_view(request, session_id=None):
             messages_list = ChatMessage.objects.filter(session=current_session).order_by('timestamp')
         except ChatSession.DoesNotExist:
             return redirect('chat')
-    elif sessions.exists():
-        current_session = sessions.first()
-        messages_list = ChatMessage.objects.filter(session=current_session).order_by('timestamp')
+            
+    # WE REMOVED the 'elif' block here so it doesn't auto-load old chats!
 
     context = {
         'sessions': sessions,
@@ -517,6 +517,7 @@ def chat_ui_view(request, session_id=None):
 
 @login_required(login_url='login')
 def delete_chat_session(request, session_id):
+    """Deletes the specific chat and returns to a blank screen."""
     ChatSession.objects.filter(id=session_id, user=request.user).delete()
     return redirect('chat')
     sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
@@ -543,9 +544,8 @@ def delete_chat_session(request, session_id):
 
 @login_required(login_url='login')
 def new_chat_session(request):
-    session = ChatSession.objects.create(user=request.user, title="New Conversation")
-    return redirect('chat_detail', session_id=session.id)
-
+    """Redirects to a clean, empty chat interface."""
+    return redirect('chat')
 @csrf_exempt
 @login_required(login_url='login')
 def langchain_chat_api(request):
