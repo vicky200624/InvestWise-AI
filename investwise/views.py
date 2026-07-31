@@ -1,5 +1,9 @@
+import base64
 import os
 import json
+from deepgram import DeepgramClient
+from dotenv import load_dotenv
+
 import requests
 import yfinance as yf
 import pyotp
@@ -12,7 +16,16 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from google import genai
-from .models import BrokerCredentials, AssetHolding
+from .models import (
+    BrokerCredentials, AssetHolding, ChatSession, ChatMessage,
+    StockAnalysis, AgentTask, InvestmentFeedback,
+)
+
+from django.core.files.storage import FileSystemStorage
+import google.generativeai as genai
+from elevenlabs.client import ElevenLabs
+
+load_dotenv()
 
 # ==============================================================================
 # HELPER FUNCTIONS
@@ -409,6 +422,8 @@ def ai_advisor_view(request):
             return JsonResponse({'error': error_message}, status=500)
             
     return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+from gtts import gTTS
+import io
 @csrf_exempt
 def tts_view(request):
     if request.method == 'POST':
@@ -419,35 +434,22 @@ def tts_view(request):
             if not text:
                 return JsonResponse({'error': 'Text cannot be empty'}, status=400)
                 
-            elevenlabs_key = os.environ.get('ELEVENLABS_API_KEY')
-            voice_id = "21m00Tcm4TlvDq8ikWAM"  # Default Voice ID (Rachel)
+            # Generate Speech using free Google TTS
+            tts = gTTS(text=text, lang='en')
             
-            url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-            headers = {
-                "Accept": "audio/mpeg",
-                "Content-Type": "application/json",
-                "xi-api-key": elevenlabs_key
-            }
-            payload = {
-                "text": text,
-                "model_id": "eleven_monolingual_v1",
-                "voice_settings": {
-                    "stability": 0.5,
-                    "similarity_boost": 0.75
-                }
-            }
+            # Save to an in-memory file instead of a real file
+            audio_fp = io.BytesIO()
+            tts.write_to_fp(audio_fp)
+            audio_fp.seek(0)
+
+            # Return the audio file directly to the browser
+            return HttpResponse(audio_fp.read(), content_type='audio/mpeg')
             
-            response = requests.post(url, json=payload, headers=headers)
-            
-            if response.status_code == 200:
-                return HttpResponse(response.content, content_type="audio/mpeg")
-            else:
-                return JsonResponse({'error': 'TTS generation failed'}, status=500)
         except Exception as e:
+            print(f"TTS Error: {str(e)}") # Prints the exact error in your terminal if it fails
             return JsonResponse({'error': str(e)}, status=500)
             
     return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
-
 
 @login_required(login_url='login')
 def user_manual_view(request):
@@ -675,3 +677,428 @@ def clear_chat_history(request):
     """Deletes all chat history for the logged-in user."""
     ChatMessage.objects.filter(user=request.user).delete()
     return redirect('chat')
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+gemini_model = genai.GenerativeModel('gemini-2.5-flash') 
+eleven_client = ElevenLabs(api_key=os.environ.get("ELEVENLABS_API_KEY"))
+deepgram_client = DeepgramClient(api_key=os.environ.get("DEEPGRAM_API_KEY")) # ADD THIS CLIENT
+import os
+import base64
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import google.generativeai as genai  # Reverted to old import
+from elevenlabs.client import ElevenLabs
+from deepgram import DeepgramClient
+
+@csrf_exempt
+def voice_chat_api(request):
+    if request.method == 'POST' and request.FILES.get('audio'):
+        try:
+            # 1. Initialize Clients (Using your hardcoded keys)
+            genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+            gemini_model = genai.GenerativeModel('gemini-2.5-flash') # Old model initialization
+            
+            eleven_client = ElevenLabs(api_key=os.environ.get("ELEVENLABS_API_KEY"))
+            deepgram_client = DeepgramClient(api_key=os.environ.get("DEEPGRAM_API_KEY"))
+
+            # 2. Read audio from RAM
+            audio_bytes = request.FILES['audio'].read()
+            
+            # 3. Deepgram STT
+            stt_response = deepgram_client.listen.v1.media.transcribe_file(
+                request=audio_bytes,
+                model="nova-3"
+            )
+            user_text = stt_response.results.channels[0].alternatives[0].transcript
+            
+            if not user_text.strip():
+                return JsonResponse({"error": "No speech detected."}, status=400)
+            
+            # 4. Gemini LLM (Old generation syntax)
+            llm_response = gemini_model.generate_content(user_text)
+            ai_text = llm_response.text
+            
+            # 5. ElevenLabs TTS
+            audio_generator = eleven_client.text_to_speech.convert(
+                text=ai_text,
+                voice_id="JBFqnCBsd6RMkjVDRZzb", 
+                model_id="eleven_multilingual_v2",
+                output_format="mp3_44100_128"
+            )
+            
+            # 6. Convert audio stream to base64
+            audio_data = b"".join(chunk for chunk in audio_generator if chunk)
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+            
+            return JsonResponse({
+                "user_text": user_text,
+                "ai_text": ai_text,
+                "audio_base64": audio_base64
+            })
+            
+        except Exception as e:
+            print(f"Server Error: {str(e)}") 
+            return JsonResponse({"error": str(e)}, status=500)
+            
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+# ==============================================================================
+# INVESTWISE AI 3.0 — ANALYSIS ENGINE VIEWS
+# ==============================================================================
+import logging
+
+ai_logger = logging.getLogger('investwise')
+
+
+@login_required(login_url='login')
+def analysis_view(request):
+    """
+    Renders the AI Stock Analysis dashboard page.
+
+    Shows:
+    - Stock search with time horizon selector
+    - Real-time WebSocket-driven progress indicator
+    - Investment Score gauge, SHAP waterfall, cluster scores
+    - Past analysis history for the user
+    """
+    recent_analyses = StockAnalysis.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:10]
+
+    # Get any in-progress tasks
+    pending_tasks = AgentTask.objects.filter(
+        user=request.user,
+        status__in=['PENDING', 'RUNNING']
+    ).order_by('-created_at')[:5]
+
+    context = {
+        'recent_analyses': recent_analyses,
+        'pending_tasks': pending_tasks,
+    }
+    return render(request, 'investwise/analysis.html', context)
+
+
+@csrf_exempt
+@login_required(login_url='login')
+def run_analysis_api(request):
+    """
+    API endpoint to initiate a full AI stock analysis.
+
+    POST /api/analysis/run/
+    Body: {"symbol": "AAPL", "time_horizon": "SHORT"}
+
+    Creates an AgentTask record and dispatches the analysis pipeline
+    as a Celery async task. Returns immediately with the task_id so
+    the frontend can connect via WebSocket for real-time updates.
+
+    Returns:
+        201: {"task_id": "uuid", "status": "PENDING", "ws_url": "/ws/agent/uuid/"}
+        400: {"error": "..."}
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        symbol = data.get('symbol', '').strip().upper()
+        time_horizon = data.get('time_horizon', 'SHORT').upper()
+
+        # --- Validation ---
+        if not symbol:
+            return JsonResponse({'error': 'Stock symbol is required'}, status=400)
+
+        if time_horizon not in ('SHORT', 'LONG'):
+            return JsonResponse(
+                {'error': 'time_horizon must be SHORT or LONG'}, status=400
+            )
+
+        # --- Create AgentTask record ---
+        agent_task = AgentTask.objects.create(
+            user=request.user,
+            task_type='full_analysis',
+            input_data={
+                'symbol': symbol,
+                'time_horizon': time_horizon,
+            },
+            status='PENDING',
+            current_step='Queued for analysis...',
+        )
+
+        # --- Dispatch Celery Task ---
+        from investwise.tasks import run_full_analysis
+        celery_result = run_full_analysis.delay(
+            user_id=request.user.id,
+            symbol=symbol,
+            time_horizon=time_horizon,
+            task_id=str(agent_task.id),
+        )
+
+        # Update with Celery task ID
+        agent_task.celery_task_id = celery_result.id
+        agent_task.save()
+
+        ai_logger.info(
+            f"Analysis queued: {symbol} ({time_horizon}) by {request.user.username} "
+            f"| task_id={agent_task.id}"
+        )
+
+        return JsonResponse({
+            'task_id': str(agent_task.id),
+            'status': 'PENDING',
+            'ws_url': f'/ws/agent/{agent_task.id}/',
+            'symbol': symbol,
+            'time_horizon': time_horizon,
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        ai_logger.error(f"Run analysis error: {e}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+def analysis_status_api(request, task_id):
+    """
+    API endpoint to check the status of an analysis task.
+
+    GET /api/analysis/status/<task_id>/
+
+    Returns current status, progress percentage, and current step name.
+    Used as a fallback for clients that can't use WebSocket.
+    """
+    try:
+        task = AgentTask.objects.get(id=task_id, user=request.user)
+        response = {
+            'task_id': str(task.id),
+            'status': task.status,
+            'progress_percent': task.progress_percent,
+            'current_step': task.current_step,
+        }
+
+        if task.status == 'COMPLETED' and task.result_data:
+            response['result'] = task.result_data
+
+        if task.status == 'FAILED':
+            response['error'] = task.error_message
+
+        return JsonResponse(response)
+
+    except AgentTask.DoesNotExist:
+        return JsonResponse({'error': 'Task not found'}, status=404)
+
+
+@login_required(login_url='login')
+def analysis_result_api(request, analysis_id):
+    """
+    API endpoint to get the full result of a completed analysis.
+
+    GET /api/analysis/result/<analysis_id>/
+
+    Returns the complete StockAnalysis data including cluster scores,
+    SHAP values, neural network prediction, and portfolio suggestion.
+    """
+    try:
+        analysis = StockAnalysis.objects.get(id=analysis_id, user=request.user)
+        return JsonResponse({
+            'id': analysis.id,
+            'stock_symbol': analysis.stock_symbol,
+            'stock_name': analysis.stock_name,
+            'time_horizon': analysis.time_horizon,
+            'investment_score': analysis.investment_score,
+            'confidence': analysis.confidence,
+            'recommendation': analysis.recommendation,
+            'cluster_scores': {
+                'fundamental': analysis.fundamental_score,
+                'quant': analysis.quant_score,
+                'sentiment': analysis.sentiment_score,
+            },
+            'fundamental_data': analysis.fundamental_data,
+            'quant_data': analysis.quant_data,
+            'sentiment_data': analysis.sentiment_data,
+            'shap_values': analysis.shap_values,
+            'top_factors': analysis.top_factors,
+            'nn_model_used': analysis.nn_model_used,
+            'predicted_price': analysis.predicted_price,
+            'current_price': analysis.current_price,
+            'prediction_horizon_days': analysis.prediction_horizon_days,
+            'portfolio_suggestion': analysis.portfolio_suggestion,
+            'processing_time': analysis.processing_time_seconds,
+            'created_at': analysis.created_at.isoformat(),
+        })
+
+    except StockAnalysis.DoesNotExist:
+        return JsonResponse({'error': 'Analysis not found'}, status=404)
+
+
+@csrf_exempt
+@login_required(login_url='login')
+def investment_feedback_api(request):
+    """
+    API endpoint for submitting RLHF feedback on an AI recommendation.
+
+    POST /api/feedback/
+    Body: {"analysis_id": 42, "feedback_type": "BUY_AGREE", "comment": "..."}
+
+    Creates an InvestmentFeedback record and dispatches RLHF processing.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        analysis_id = data.get('analysis_id')
+        feedback_type = data.get('feedback_type', '').upper()
+        comment = data.get('comment', '')
+
+        # --- Validation ---
+        if not analysis_id:
+            return JsonResponse({'error': 'analysis_id is required'}, status=400)
+
+        valid_types = ['BUY_AGREE', 'HOLD_AGREE', 'SELL_AGREE', 'REJECT']
+        if feedback_type not in valid_types:
+            return JsonResponse(
+                {'error': f'feedback_type must be one of: {valid_types}'},
+                status=400
+            )
+
+        # Verify analysis belongs to user
+        try:
+            analysis = StockAnalysis.objects.get(
+                id=analysis_id, user=request.user
+            )
+        except StockAnalysis.DoesNotExist:
+            return JsonResponse({'error': 'Analysis not found'}, status=404)
+
+        # Check for duplicate feedback
+        existing = InvestmentFeedback.objects.filter(
+            user=request.user, analysis=analysis
+        ).first()
+        if existing:
+            return JsonResponse(
+                {'error': 'Feedback already submitted for this analysis'},
+                status=409
+            )
+
+        # --- Create feedback ---
+        feedback = InvestmentFeedback.objects.create(
+            user=request.user,
+            analysis=analysis,
+            feedback_type=feedback_type,
+            comment=comment,
+        )
+
+        # Dispatch RLHF processing
+        from investwise.tasks import process_rlhf_feedback
+        process_rlhf_feedback.delay(feedback.id)
+
+        ai_logger.info(
+            f"Feedback received: {analysis.stock_symbol} | "
+            f"{feedback_type} by {request.user.username}"
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'feedback_id': feedback.id,
+            'message': 'Thank you for your feedback!',
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        ai_logger.error(f"Feedback error: {e}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@login_required(login_url='login')
+def portfolio_optimize_api(request):
+    """
+    API endpoint for portfolio optimization.
+
+    POST /api/portfolio/optimize/
+    Body: {"symbols": ["AAPL", "MSFT", "GOOGL"], "method": "markowitz"}
+
+    Runs Markowitz Mean-Variance or Black-Litterman optimization
+    on the given stock symbols and returns optimal weights.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        symbols = data.get('symbols', [])
+        method = data.get('method', 'markowitz').lower()
+
+        if not symbols or len(symbols) < 2:
+            return JsonResponse(
+                {'error': 'At least 2 stock symbols are required'}, status=400
+            )
+
+        from investwise.ml.portfolio_optimizer import (
+            markowitz_optimize, black_litterman_optimize
+        )
+
+        if method == 'markowitz':
+            result = markowitz_optimize(symbols)
+        elif method == 'black_litterman':
+            views = data.get('views', {})
+            confidences = data.get('confidences', [])
+            market_caps = data.get('market_caps', {})
+            result = black_litterman_optimize(
+                symbols, market_caps, views, confidences
+            )
+        else:
+            return JsonResponse(
+                {'error': 'method must be markowitz or black_litterman'},
+                status=400
+            )
+
+        if 'error' in result:
+            return JsonResponse(result, status=500)
+
+        return JsonResponse({
+            'status': 'success',
+            'method': method,
+            **result
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    except Exception as e:
+        ai_logger.error(f"Portfolio optimize error: {e}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required(login_url='login')
+def analysis_history_api(request):
+    """
+    API endpoint for fetching past analysis results.
+
+    GET /api/analysis/history/?symbol=AAPL&limit=10
+
+    Returns a list of past analyses for the user, optionally filtered by symbol.
+    """
+    symbol = request.GET.get('symbol', '').strip().upper()
+    limit = min(int(request.GET.get('limit', 20)), 50)
+
+    analyses = StockAnalysis.objects.filter(user=request.user)
+    if symbol:
+        analyses = analyses.filter(stock_symbol=symbol)
+
+    analyses = analyses.order_by('-created_at')[:limit]
+
+    results = []
+    for a in analyses:
+        results.append({
+            'id': a.id,
+            'stock_symbol': a.stock_symbol,
+            'stock_name': a.stock_name,
+            'investment_score': a.investment_score,
+            'recommendation': a.recommendation,
+            'time_horizon': a.time_horizon,
+            'confidence': a.confidence,
+            'created_at': a.created_at.isoformat(),
+        })
+
+    return JsonResponse({'analyses': results})

@@ -1,0 +1,52 @@
+INFO 2026-07-31 03:35:28,180 views Analysis queued: RELIANCE (SHORT) by gamingvickey59@gmail.com | task_id=f30699cd-d19e-49e2-97f7-ff8bddf8221d
+INFO 2026-07-31 03:35:28,243 consumers WebSocket connected: user=gamingvickey59@gmail.com, task=f30699cd-d19e-49e2-97f7-ff8bddf8221d
+INFO 2026-07-31 03:35:28,552 orchestrator Starting analysis for RELIANCE
+INFO 2026-07-31 03:35:28,577 fundamental Fetching financials for RELIANCE
+INFO 2026-07-31 03:35:28,578 market_intelligence Fetching news for RELIANCE
+INFO 2026-07-31 03:35:28,579 quant_valuation Calculating DCF for RELIANCE
+INFO 2026-07-31 03:35:28,580 fundamental Running RAG for corporate docs for RELIANCE
+INFO 2026-07-31 03:35:28,581 market_intelligence Analyzing sentiment for RELIANCE
+INFO 2026-07-31 03:35:28,581 quant_valuation Running technical analysis for RELIANCE
+INFO 2026-07-31 03:35:28,582 fundamental Evaluating business quality for RELIANCE
+INFO 2026-07-31 03:35:28,583 market_intelligence Fetching macro context
+INFO 2026-07-31 03:35:28,583 quant_valuation Running neural prediction for RELIANCE (SHORT)
+INFO 2026-07-31 03:35:28,584 fundamental Scoring fundamentals for RELIANCE
+INFO 2026-07-31 03:35:28,584 market_intelligence Ranking competitors for RELIANCE
+INFO 2026-07-31 03:35:28,585 quant_valuation Scoring quant for RELIANCE
+INFO 2026-07-31 03:35:28,586 market_intelligence Scoring sentiment for RELIANCE
+ERROR 2026-07-31 03:35:28,587 orchestrator Error executing orchestrator graph: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
+For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
+INFO 2026-07-31 03:35:28,587 orchestrator Completed analysis for RELIANCE
+ERROR 2026-07-31 03:35:28,587 tasks Analysis failed for RELIANCE: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
+For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
+Traceback (most recent call last):
+  File "/home/vicky/Documents/investai/investwise/tasks.py", line 134, in run_full_analysis
+    raise Exception(
+Exception: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
+For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
+INFO 2026-07-31 03:39:21,209 views Analysis queued: TCS (SHORT) by gamingvickey59@gmail.com | task_id=f1c886ff-c249-442d-a090-a1f8bd0195b1
+INFO 2026-07-31 03:39:21,259 orchestrator Starting analysis for TCS
+INFO 2026-07-31 03:39:21,274 consumers WebSocket connected: user=gamingvickey59@gmail.com, task=f1c886ff-c249-442d-a090-a1f8bd0195b1
+INFO 2026-07-31 03:39:21,299 fundamental Fetching financials for TCS
+INFO 2026-07-31 03:39:21,304 market_intelligence Fetching news for TCS
+INFO 2026-07-31 03:39:21,305 fundamental Running RAG for corporate docs for TCS
+INFO 2026-07-31 03:39:21,308 quant_valuation Calculating DCF for TCS
+INFO 2026-07-31 03:39:21,309 market_intelligence Analyzing sentiment for TCS
+INFO 2026-07-31 03:39:21,310 fundamental Evaluating business quality for TCS
+INFO 2026-07-31 03:39:21,311 quant_valuation Running technical analysis for TCS
+INFO 2026-07-31 03:39:21,312 market_intelligence Fetching macro context
+INFO 2026-07-31 03:39:21,313 fundamental Scoring fundamentals for TCS
+INFO 2026-07-31 03:39:21,314 quant_valuation Running neural prediction for TCS (SHORT)
+INFO 2026-07-31 03:39:21,316 market_intelligence Ranking competitors for TCS
+INFO 2026-07-31 03:39:21,318 quant_valuation Scoring quant for TCS
+INFO 2026-07-31 03:39:21,320 market_intelligence Scoring sentiment for TCS
+ERROR 2026-07-31 03:39:21,322 orchestrator Error executing orchestrator graph: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
+For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
+INFO 2026-07-31 03:39:21,323 orchestrator Completed analysis for TCS
+ERROR 2026-07-31 03:39:21,323 tasks Analysis failed for TCS: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
+For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
+Traceback (most recent call last):
+  File "/home/vicky/Documents/investai/investwise/tasks.py", line 134, in run_full_analysis
+    raise Exception(
+Exception: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
+For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE

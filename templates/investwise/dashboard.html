@@ -154,9 +154,28 @@
                         <a href="{% url 'chat' %}" class="w-full block text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-colors text-sm shadow-md">
                             Ask Gemini ✨
                         </a>
-                        <button onclick="playTTS()" class="w-12 bg-gray-800 hover:bg-gray-700 text-white rounded-xl flex items-center justify-center font-bold text-lg border border-gray-700"> </button>
-                    </div>
+                        <button type="button" id="dashboard-mic-btn" onclick="startDashboardVoice()" class="bg-gray-800 hover:bg-gray-700 text-white p-2.5 rounded-xl flex items-center justify-center transition-colors shadow-sm border border-gray-700" title="Click to speak your question">
+                        🎙️
+                    </button>
+                    <audio id="dashboard-audio-playback" controls style="display:none; margin-top: 10px;"></audio>
+                    <p id="dashboard-status-text" style="margin-top: 10px; font-weight: bold;"></p>
+                                </div>
                 </div>
+
+                <!-- AI Analysis Engine (NEW - InvestWise 3.0) -->
+                <a href="{% url 'analysis' %}" class="block bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-3xl p-6 shadow-xl border border-indigo-500 hover:shadow-2xl hover:scale-[1.02] transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="text-2xl">🧠</div>
+                        <h2 class="text-lg font-bold">AI Analysis Engine</h2>
+                        <span class="bg-white/20 text-xs font-bold px-2 py-0.5 rounded-full ml-auto">v3.0</span>
+                    </div>
+                    <p class="text-indigo-200 text-sm leading-relaxed mb-4">
+                        4-cluster agentic AI with LSTM/XGBoost neural networks, SHAP explainability, and real-time streaming.
+                    </p>
+                    <div class="flex items-center gap-2 text-sm font-bold text-white">
+                        Analyze Any Stock →
+                    </div>
+                </a>
 
                 <!-- Quick Trade -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
@@ -228,5 +247,149 @@
             } catch (err) { alert("Failed to connect to audio endpoint."); }
         }
     </script>
+    <script>
+    let autoChatEnabled = false;
+    let dashboardMediaRecorder;
+    let dashboardAudioChunks = [];
+    
+    let audioContext;
+    let analyser;
+    let microphone;
+
+    const dashboardMicBtn = document.getElementById('dashboard-mic-btn');
+    const dashboardAudioPlayback = document.getElementById('dashboard-audio-playback');
+    const dashboardStatusText = document.getElementById('dashboard-status-text');
+
+    async function startContinuousListening() {
+        if (!autoChatEnabled) return;
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            dashboardMediaRecorder = new MediaRecorder(stream);
+            dashboardAudioChunks = [];
+            
+            // Web Audio API setup with audio context resumption
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            analyser = audioContext.createAnalyser();
+            microphone = audioContext.createMediaStreamSource(stream);
+            microphone.connect(analyser);
+            
+            analyser.fftSize = 512;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            let speechDetected = false;
+            let lastSpeechTime = Date.now();
+            let isRecordingActive = true;
+            
+            function detectSilence() {
+                if (!isRecordingActive) return;
+                
+                analyser.getByteFrequencyData(dataArray);
+                let sum = dataArray.reduce((a, b) => a + b, 0);
+                let average = sum / bufferLength;
+                
+                // Detect voice volume threshold
+                if (average > 15) { 
+                    speechDetected = true;
+                    lastSpeechTime = Date.now(); 
+                }
+                
+                // Auto-stop: If speech was detected and 1.5 seconds of silence follows
+                if (speechDetected && (Date.now() - lastSpeechTime > 1500)) {
+                    if (dashboardMediaRecorder.state !== "inactive") {
+                        dashboardMediaRecorder.stop();
+                    }
+                } else {
+                    requestAnimationFrame(detectSilence);
+                }
+            }
+            
+            dashboardMediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) dashboardAudioChunks.push(event.data);
+            };
+
+            dashboardMediaRecorder.onstop = async () => {
+                isRecordingActive = false;
+                
+                // Stop audio track capture during processing
+                stream.getTracks().forEach(track => track.stop());
+                if (audioContext) audioContext.close();
+                
+                if (dashboardAudioChunks.length === 0 || !speechDetected) {
+                    if (autoChatEnabled) setTimeout(startContinuousListening, 500);
+                    return;
+                }
+
+                dashboardStatusText.innerText = "Thinking... 🧠";
+                const audioBlob = new Blob(dashboardAudioChunks, { type: 'audio/mp3' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'input.mp3');
+
+                try {
+                    const response = await fetch('/api/voice-chat/', { method: 'POST', body: formData });
+                    const data = await response.json();
+                    
+                    if (data.audio_base64) {
+                        dashboardStatusText.innerText = `AI Speaking... 🗣️\n(You: ${data.user_text})`;
+                        dashboardAudioPlayback.src = "data:audio/mp3;base64," + data.audio_base64;
+                        dashboardAudioPlayback.style.display = "block";
+                        
+                        // Loop back to listening when AI finishes speaking
+                        dashboardAudioPlayback.onended = () => {
+                            if (autoChatEnabled) {
+                                dashboardStatusText.innerText = "Listening... 🎤";
+                                startContinuousListening();
+                            }
+                        };
+                        dashboardAudioPlayback.play();
+                    } else {
+                        dashboardStatusText.innerText = "Error: " + (data.error || "Failed to process audio");
+                        if (autoChatEnabled) setTimeout(startContinuousListening, 2000);
+                    }
+                } catch (err) {
+                    dashboardStatusText.innerText = "Server/Network Error.";
+                    if (autoChatEnabled) setTimeout(startContinuousListening, 2000);
+                }
+            };
+
+            dashboardMediaRecorder.start();
+            isRecordingActive = true;
+            dashboardStatusText.innerText = "Listening... 🎤 (Speak now, auto-detects when you finish)";
+            detectSilence(); 
+            
+        } catch (err) {
+            dashboardStatusText.innerText = "Microphone access denied.";
+            autoChatEnabled = false;
+            resetButton();
+        }
+    }
+
+    function resetButton() {
+        dashboardMicBtn.innerHTML = "🎤 Start Continuous Chat";
+        dashboardMicBtn.classList.replace("btn-danger", "btn-primary");
+    }
+
+    dashboardMicBtn.addEventListener('click', () => {
+        autoChatEnabled = !autoChatEnabled;
+        
+        if (autoChatEnabled) {
+            dashboardMicBtn.innerHTML = "⏹️ Stop Continuous Chat";
+            dashboardMicBtn.classList.replace("btn-primary", "btn-danger");
+            startContinuousListening();
+        } else {
+            resetButton();
+            if (dashboardMediaRecorder && dashboardMediaRecorder.state !== "inactive") {
+                dashboardMediaRecorder.stop();
+            }
+            dashboardStatusText.innerText = "Chat stopped.";
+            dashboardAudioPlayback.pause();
+        }
+    });
+</script>
 </body>
 </html>
