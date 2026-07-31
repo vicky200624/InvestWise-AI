@@ -17,14 +17,18 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # ==============================================================================
 # SECURITY
 # ==============================================================================
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-s$xi04h*iaiww%gxu8f741fl8hh*#5kttmwgvd=5roxt)m$luq'
-)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError(
+        'DJANGO_SECRET_KEY environment variable is required. '
+        'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
+    )
 
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*'] if DEBUG else os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1'] if DEBUG else [
+    h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()
+]
 
 # ==============================================================================
 # APPLICATION DEFINITION
@@ -43,6 +47,7 @@ INSTALLED_APPS = [
 
     # Third-Party
     'rest_framework',
+    "django_extensions",
     'corsheaders',
     'channels',
     'django_celery_beat',
@@ -142,7 +147,6 @@ CHANNEL_LAYERS = {
 # CELERY — Async Task Queue Configuration
 # ==============================================================================
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -156,8 +160,8 @@ CELERY_TASK_TIME_LIMIT = 600                    # 10-minute hard limit
 CELERY_TASK_RETRY_BACKOFF = True                # Exponential backoff on retries
 CELERY_TASK_RETRY_BACKOFF_MAX = 600             # Max 10-minute backoff
 
-# Store task results in Django DB for admin visibility
-CELERY_RESULT_BACKEND = 'django-db'
+# Store task results in Django DB for admin visibility and Celery Result Backend
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'django-db')
 CELERY_CACHE_BACKEND = 'django-cache'
 
 # Periodic task scheduling (Celery Beat)

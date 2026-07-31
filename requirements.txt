@@ -5,6 +5,7 @@
 # --- Core Django Stack ---
 Django==5.1.7
 djangorestframework==3.16.0
+djangorestframework-simplejwt==5.4.0
 django-cors-headers==4.7.0
 psycopg2-binary==2.9.10
 mysqlclient==2.2.8

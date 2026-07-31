@@ -1,2 +1,69 @@
+# ==============================================================================
+# InvestWise AI 3.0 — .gitignore
+# ==============================================================================
+
+# --- Environment & Secrets ---
 .env
-venv
+.env.local
+.env.production
+*.pem
+*.key
+.env.example
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+
+# --- Django ---
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+
+# --- AI Models & Data ---
+ai_models/*.pkl
+ai_models/*.pt
+ai_models/*.joblib
+ai_models/latest/
+chroma_db/
+datasets/*.csv
+datasets/*.parquet
+
+# --- Logs ---
+logs/
+*.log
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Node / Frontend ---
+node_modules/
+frontend/dist/
+frontend/build/
+.next/
+
+# --- Docker ---
+docker/volumes/
+
+# --- Testing ---
+.coverage
+htmlcov/
+.pytest_cache/

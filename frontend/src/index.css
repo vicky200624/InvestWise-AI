@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  
+  --color-bg-base: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-elevated: #1a1a2e;
+  
+  --color-primary: #8b5cf6;
+  --color-primary-light: #a78bfa;
+  --color-accent: #06d6a0;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-border: #1e293b;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+.glass-card {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl transition-all duration-300 hover:border-white/20;
+}

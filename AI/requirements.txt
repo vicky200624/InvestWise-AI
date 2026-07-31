@@ -1,0 +1,17 @@
+pandas
+numpy
+yfinance
+requests
+beautifulsoup4
+fredapi
+chromadb
+xgboost
+catboost
+scikit-learn
+torch
+shap
+pypfopt
+langgraph
+langchain_google_genai
+joblib
+transformers

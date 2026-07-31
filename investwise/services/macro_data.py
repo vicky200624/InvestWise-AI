@@ -77,12 +77,18 @@ def cache_macro_data() -> int:
     count = 0
     try:
         from django.utils import timezone
-        
+        today = timezone.now().date()
+
         for name, value in snapshot.items():
             if value is not None:
-                indicator, created = MacroIndicator.objects.update_or_create(
-                    name=name,
-                    defaults={'value': value, 'last_updated': timezone.now()}
+                MacroIndicator.objects.update_or_create(
+                    indicator_code=name,
+                    date=today,
+                    defaults={
+                        'indicator_name': name,
+                        'value': value,
+                        'source': 'FRED',
+                    }
                 )
                 count += 1
         return count
@@ -93,12 +99,22 @@ def cache_macro_data() -> int:
 def get_cached_macro_features() -> dict:
     """
     Read from MacroIndicator model for ML feature engineering.
+    Returns latest value for each indicator code.
     """
     features = {}
     try:
-        indicators = MacroIndicator.objects.all()
-        for ind in indicators:
-            features[ind.name] = ind.value
+        # Get the latest value for each indicator
+        from django.db.models import Max
+        latest_dates = MacroIndicator.objects.values('indicator_code').annotate(
+            latest_date=Max('date')
+        )
+        for entry in latest_dates:
+            indicator = MacroIndicator.objects.filter(
+                indicator_code=entry['indicator_code'],
+                date=entry['latest_date']
+            ).first()
+            if indicator:
+                features[indicator.indicator_code] = indicator.value
         return features
     except Exception as e:
         logger.error(f"Error reading cached macro features: {e}")

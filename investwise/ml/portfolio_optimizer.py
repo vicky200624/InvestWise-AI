@@ -16,8 +16,8 @@ def markowitz_optimize(symbols: List[str], risk_free_rate: float = 0.04) -> Dict
         
         prices_dict = {}
         for sym in symbols:
-            df = market_data.get_historical_prices(sym)
-            prices_dict[sym] = df.set_index('Date')['Close']
+            df = market_data.fetch_historical_prices(sym)
+            prices_dict[sym] = df.set_index('Date')['Close'] if 'Date' in df.columns else df['Close']
             
         prices_df = pd.DataFrame(prices_dict).dropna()
         
@@ -48,8 +48,8 @@ def black_litterman_optimize(symbols: List[str], market_caps: Dict[str, float],
         
         prices_dict = {}
         for sym in symbols:
-            df = market_data.get_historical_prices(sym)
-            prices_dict[sym] = df.set_index('Date')['Close']
+            df = market_data.fetch_historical_prices(sym)
+            prices_dict[sym] = df.set_index('Date')['Close'] if 'Date' in df.columns else df['Close']
             
         prices_df = pd.DataFrame(prices_dict).dropna()
         S = risk_models.sample_cov(prices_df)
@@ -83,8 +83,8 @@ def calculate_efficient_frontier(symbols: List[str], n_points: int = 50) -> List
     try:
         prices_dict = {}
         for sym in symbols:
-            df = market_data.get_historical_prices(sym)
-            prices_dict[sym] = df.set_index('Date')['Close']
+            df = market_data.fetch_historical_prices(sym)
+            prices_dict[sym] = df.set_index('Date')['Close'] if 'Date' in df.columns else df['Close']
             
         prices_df = pd.DataFrame(prices_dict).dropna()
         mu = expected_returns.mean_historical_return(prices_df)

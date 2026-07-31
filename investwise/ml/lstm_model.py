@@ -85,7 +85,7 @@ def train_rnn_model(symbol: str, model_type: str = 'LSTM', epochs: int = 100, se
         logger.info(f"Training {model_type} for {symbol}...")
         
         # 1. Fetch historical prices via services.market_data
-        df = market_data.get_historical_prices(symbol)
+        df = market_data.fetch_historical_prices(symbol)
         
         # 2. Prepare sequences
         X_train, y_train, X_test, y_test, scaler = prepare_sequences(df, seq_length=seq_length)
@@ -152,7 +152,7 @@ def predict_rnn(symbol: str, model_type: str = 'LSTM', horizon_days: int = 5) ->
     try:
         active_model_record = TrainedModel.objects.filter(symbol=symbol, model_type=model_type, is_active=True).latest('created_at')
         
-        df = market_data.get_historical_prices(symbol)
+        df = market_data.fetch_historical_prices(symbol)
         seq_length = 60
         feature_cols = [col for col in df.columns if col != 'Date']
         

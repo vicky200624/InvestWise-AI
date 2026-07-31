@@ -50,3 +50,5 @@ Traceback (most recent call last):
     raise Exception(
 Exception: At key 'stock_symbol': Can receive only one value per step. Use an Annotated key to handle multiple values.
 For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
+INFO 2026-07-31 03:52:59,884 views Analysis queued: TCS (SHORT) by gamingvickey59@gmail.com | task_id=e1f33c20-cd13-4aa1-8e2e-d87b1fb1022a
+INFO 2026-07-31 03:52:59,931 consumers WebSocket connected: user=gamingvickey59@gmail.com, task=e1f33c20-cd13-4aa1-8e2e-d87b1fb1022a
