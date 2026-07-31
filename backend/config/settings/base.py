@@ -193,3 +193,6 @@ LOGGING = {
         },
     },
 }
+
+# Tells Django to use our CustomUser model instead of the default auth.User
+AUTH_USER_MODEL = 'accounts.CustomUser'

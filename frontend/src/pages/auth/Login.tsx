@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { motion } from 'framer-motion';
@@ -16,11 +16,19 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
+
     try {
+      authApi.logout(); // Wipe old session artifacts
       await authApi.login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.detail || 'Invalid username/email or password.');
+      if (err.response?.status === 401) {
+        setErrorMessage('Invalid username/email or password.');
+      } else if (err.response?.status === 409) {
+        setErrorMessage('Account exists with a different method. Try resetting your password.');
+      } else {
+        setErrorMessage(err.response?.data?.detail || 'Login failed. Please check server connections.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -28,7 +36,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-base)] flex items-center justify-center relative overflow-hidden" id="login-page">
-      {/* Animated background elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[var(--color-primary)]/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[var(--color-accent)]/20 rounded-full blur-[100px]" />
       
@@ -86,9 +93,8 @@ export default function Login() {
             </Button>
           </form>
 
-          
           <div className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
-            Don't have an account? <a href="#" className="text-white font-medium hover:underline">Create one</a>
+            Don't have an account? <Link to="/register" className="text-white font-medium hover:underline">Create one</Link>
           </div>
         </Card>
       </motion.div>
