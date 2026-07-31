@@ -2,7 +2,16 @@
 Unit tests for InvestWise AI 3.0 Django REST Framework backend API.
 """
 
+import os
+import sys
 import unittest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+
+import django
+django.setup()
+
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient

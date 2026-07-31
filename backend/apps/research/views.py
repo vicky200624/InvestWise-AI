@@ -25,10 +25,10 @@ class AnalyzeStockView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        symbol = request.data.get('stock_symbol')
+        symbol = request.data.get('stock_symbol') or request.data.get('symbol')
         horizon = request.data.get('time_horizon', 'LONG')
         if not symbol:
-            return Response({'error': 'stock_symbol is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'symbol or stock_symbol is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         result = ResearchService.trigger_analysis(request.user, symbol, horizon)
         return Response(result, status=status.HTTP_200_OK)

@@ -7,7 +7,9 @@ router.register(r'history', StockAnalysisViewSet, basename='stockanalysis')
 router.register(r'tasks', AgentTaskViewSet, basename='agenttask')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('analyze/', AnalyzeStockView.as_view(), name='research-analyze'),
+    path('run/', AnalyzeStockView.as_view(), name='research-run'),
     path('feedback/', SubmitFeedbackView.as_view(), name='research-feedback'),
+    path('', include(router.urls)),
+    path('', AnalyzeStockView.as_view(), name='research-root-post'),
 ]

@@ -6,7 +6,10 @@ with a yfinance fallback.
 
 import logging
 import requests
-import yfinance as yf
+try:
+    import yfinance as yf
+except ImportError:
+    yf = None
 from typing import List, Dict, Any, Union, Optional
 
 logger = logging.getLogger('investwise.ai.fundamentals')

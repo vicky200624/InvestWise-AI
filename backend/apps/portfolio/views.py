@@ -18,7 +18,9 @@ class PortfolioOptimizeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        result = PortfolioService.optimize_portfolio(request.user)
+        symbols = request.data.get('symbols', None)
+        method = request.data.get('method', 'markowitz')
+        result = PortfolioService.optimize_portfolio(request.user, method=method, symbols=symbols)
         return Response(result, status=status.HTTP_200_OK)
 
 class PortfolioPerformanceView(APIView):
@@ -26,4 +28,11 @@ class PortfolioPerformanceView(APIView):
 
     def get(self, request):
         result = PortfolioService.get_performance(request.user)
+        return Response(result, status=status.HTTP_200_OK)
+
+class DashboardSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        result = PortfolioService.get_dashboard_summary(request.user)
         return Response(result, status=status.HTTP_200_OK)
