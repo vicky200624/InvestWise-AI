@@ -17,3 +17,7 @@ class AssetHolding(models.Model):
     qty = models.FloatField(default=0)
     avg_price = models.FloatField(default=0)
     added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-added_at']
+

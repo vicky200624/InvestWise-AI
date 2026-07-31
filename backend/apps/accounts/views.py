@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
 
 from .serializers import UserRegistrationSerializer, UserSerializer, UserPortfolioSerializer, BrokerCredentialsSerializer
+from .models import UserPortfolio, BrokerCredentials
 from .services import AccountsService
 
 class RegisterView(generics.CreateAPIView):
@@ -26,3 +27,22 @@ class LogoutView(views.APIView):
         # JWT logout is typically handled on client side by discarding tokens,
         # or by blacklisting the refresh token if configured.
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BrokerCredentialsView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = BrokerCredentialsSerializer
+
+    def get_object(self):
+        creds, _ = BrokerCredentials.objects.get_or_create(user=self.request.user)
+        return creds
+
+
+class UserPortfolioView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserPortfolioSerializer
+
+    def get_object(self):
+        portfolio, _ = UserPortfolio.objects.get_or_create(user=self.request.user)
+        return portfolio
+

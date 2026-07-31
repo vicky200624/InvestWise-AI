@@ -26,12 +26,22 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'total_invested', 'current_value', 'xirr', 'last_synced')
 
 class BrokerCredentialsSerializer(serializers.ModelSerializer):
+    broker_name = serializers.CharField(max_length=20, default='ANGELONE')
+    api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    pin = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    totp_secret = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
     class Meta:
         model = BrokerCredentials
         fields = ('id', 'broker_name', 'client_id', 'is_active', 'connected_at', 'api_key', 'pin', 'totp_secret')
         read_only_fields = ('id', 'is_active', 'connected_at')
-        extra_kwargs = {
-            'api_key': {'write_only': True},
-            'pin': {'write_only': True},
-            'totp_secret': {'write_only': True}
-        }
+
+    def validate_broker_name(self, value):
+        val = value.upper() if value else 'ANGELONE'
+        valid_choices = [c[0] for c in BrokerCredentials.BROKER_CHOICES]
+        if val not in valid_choices:
+            raise serializers.ValidationError(f"Invalid broker name. Valid choices: {valid_choices}")
+        return val
+
+
+

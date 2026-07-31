@@ -18,6 +18,8 @@ class WatchlistItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return WatchlistItem.objects.filter(watchlist__user=self.request.user)
 
+
+
 class PriceAlertViewSet(viewsets.ModelViewSet):
     serializer_class = PriceAlertSerializer
     permission_classes = [IsAuthenticated, IsOwner]

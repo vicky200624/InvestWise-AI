@@ -66,12 +66,11 @@ export default function Portfolio() {
     };
 
     try {
-      // Optimistic local add
+      const saved = await portfolioApi.addHolding(newHolding);
       setHoldings((prev) => [
         ...prev,
         {
-          ...newHolding,
-          id: Date.now(),
+          ...saved,
           currentPrice: parseFloat(avgPrice) * 1.05,
           change: 5.0,
         },
@@ -82,13 +81,27 @@ export default function Portfolio() {
       setName('');
       setQty('');
       setAvgPrice('');
-
-      // Send to backend
-      await portfolioApi.optimizePortfolio('MODERATE'); // Keep service active
+      await fetchHoldings();
     } catch (err) {
       console.error('Error adding holding:', err);
+      // Fallback optimistic add if offline
+      setHoldings((prev) => [
+        ...prev,
+        {
+          ...newHolding,
+          id: Date.now(),
+          currentPrice: parseFloat(avgPrice) * 1.05,
+          change: 5.0,
+        },
+      ]);
+      setShowAddModal(false);
+      setSymbol('');
+      setName('');
+      setQty('');
+      setAvgPrice('');
     }
   };
+
 
   const handleOptimize = async () => {
     setOptimizing(true);

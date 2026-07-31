@@ -26,6 +26,9 @@ class StockAnalysis(models.Model):
     processing_time_seconds = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
 class AgentTask(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='agent_tasks')
@@ -46,6 +49,9 @@ class AgentTask(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
 class RAGDocument(models.Model):
     stock_symbol = models.CharField(max_length=20, db_index=True)
     source_type = models.CharField(max_length=20, choices=[
@@ -61,6 +67,9 @@ class RAGDocument(models.Model):
     chunk_count = models.IntegerField(default=0)
     ingested_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-ingested_at']
+
 class InvestmentFeedback(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     analysis = models.ForeignKey(StockAnalysis, on_delete=models.CASCADE, related_name='feedback')
@@ -69,6 +78,9 @@ class InvestmentFeedback(models.Model):
     reward_signal = models.FloatField(null=True, blank=True)
     actual_outcome = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
 class TrainedModel(models.Model):
     symbol = models.CharField(max_length=20, db_index=True)
@@ -85,9 +97,15 @@ class TrainedModel(models.Model):
     metrics = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
 class MacroIndicator(models.Model):
     indicator_code = models.CharField(max_length=20)
     indicator_name = models.CharField(max_length=200)
     date = models.DateField()
     value = models.FloatField()
     source = models.CharField(max_length=20, default='FRED')
+
+    class Meta:
+        ordering = ['-date']

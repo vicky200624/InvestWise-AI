@@ -32,16 +32,21 @@ export default function Watchlist() {
     try {
       const data = await watchlistApi.getWatchlist();
       if (data && data.length > 0) {
-        setItems(
-          data.map((item: any, idx: number) => ({
-            id: item.id || idx,
-            symbol: item.symbol || item.stock_symbol || 'AAPL',
-            name: item.name || item.company_name || item.symbol,
-            price: item.current_price || 150.0,
-            change: item.change_pct || 2.5,
-            target_price: item.target_price || 170.0,
-          }))
-        );
+        const rawItems = data[0]?.items ? data.flatMap((w: any) => w.items || []) : data;
+        if (rawItems && rawItems.length > 0) {
+          setItems(
+            rawItems.map((item: any, idx: number) => ({
+              id: item.id || idx,
+              symbol: item.symbol || item.stock_symbol || 'AAPL',
+              name: item.name || item.company_name || item.symbol,
+              price: item.current_price || 150.0,
+              change: item.change_pct || 2.5,
+              target_price: item.target_price || 170.0,
+            }))
+          );
+        } else {
+          setItems(DEFAULT_WATCHLIST);
+        }
       } else {
         setItems(DEFAULT_WATCHLIST);
       }
@@ -57,29 +62,46 @@ export default function Watchlist() {
     fetchWatchlist();
   }, []);
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!symbolInput) return;
 
-    const newItem: WatchlistItem = {
-      id: Date.now(),
-      symbol: symbolInput.toUpperCase(),
-      name: nameInput || symbolInput.toUpperCase(),
-      price: 135.0,
-      change: 2.1,
-      target_price: targetInput ? parseFloat(targetInput) : undefined,
-    };
+    try {
+      await watchlistApi.addItem(symbolInput);
+      setShowAddModal(false);
+      setSymbolInput('');
+      setNameInput('');
+      setTargetInput('');
+      await fetchWatchlist();
+    } catch (err) {
+      console.warn('Backend add failed, adding locally:', err);
+      const newItem: WatchlistItem = {
+        id: Date.now(),
+        symbol: symbolInput.toUpperCase(),
+        name: nameInput || symbolInput.toUpperCase(),
+        price: 135.0,
+        change: 2.1,
+        target_price: targetInput ? parseFloat(targetInput) : undefined,
+      };
 
-    setItems((prev) => [newItem, ...prev]);
-    setShowAddModal(false);
-    setSymbolInput('');
-    setNameInput('');
-    setTargetInput('');
+      setItems((prev) => [newItem, ...prev]);
+      setShowAddModal(false);
+      setSymbolInput('');
+      setNameInput('');
+      setTargetInput('');
+    }
   };
 
-  const handleRemove = (id: number) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const handleRemove = async (id: number) => {
+    try {
+      await watchlistApi.removeItem(id);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.warn('Backend delete failed, removing locally:', err);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    }
   };
+
 
   return (
     <div className="space-y-6" id="watchlist-page">

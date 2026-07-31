@@ -8,5 +8,6 @@ router.register(r'items', WatchlistItemViewSet, basename='watchlist-item')
 router.register(r'alerts', PriceAlertViewSet, basename='pricealert')
 
 urlpatterns = [
+    path('', WatchlistViewSet.as_view({'get': 'list', 'post': 'create'}), name='watchlist-list-default'),
     path('', include(router.urls)),
 ]

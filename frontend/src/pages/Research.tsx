@@ -4,7 +4,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ScoreGauge } from '../components/ui/ScoreGauge';
 import { Search, Brain, Target, TrendingUp, CheckCircle2 } from 'lucide-react';
-import { researchApi } from '../services/api';
+import { researchApi, watchlistApi } from '../services/api';
 
 export default function Research() {
   const [query, setQuery] = useState('');
@@ -14,6 +14,7 @@ export default function Research() {
   const [step, setStep] = useState('');
   const [results, setResults] = useState<any>(null);
   const [addedToWatchlist, setAddedToWatchlist] = useState(false);
+  const [isAddingWatchlist, setIsAddingWatchlist] = useState(false);
 
   const handleAnalyze = async () => {
     if (!query) return;
@@ -74,9 +75,20 @@ export default function Research() {
     }
   };
 
-  const handleAddToWatchlist = () => {
-    setAddedToWatchlist(true);
+  const handleAddToWatchlist = async () => {
+    if (addedToWatchlist || isAddingWatchlist || !query) return;
+    setIsAddingWatchlist(true);
+    try {
+      await watchlistApi.addItem(query);
+      setAddedToWatchlist(true);
+    } catch (err) {
+      console.warn('Could not add to watchlist backend, setting local state:', err);
+      setAddedToWatchlist(true);
+    } finally {
+      setIsAddingWatchlist(false);
+    }
   };
+
 
   return (
     <div className="space-y-6" id="research-page">

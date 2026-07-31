@@ -121,7 +121,7 @@ export default function Dashboard() {
               View Details
             </button>
           </div>
-          <PerformanceLine />
+          <PerformanceLine data={summary.performance} />
         </Card>
         
         <Card>
@@ -130,7 +130,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center">
             <div className="w-1/2">
-              <PortfolioDonut />
+              <PortfolioDonut data={summary.allocation} />
             </div>
             <div className="w-1/2 pl-4 space-y-4">
               {summary.allocation.map((item, index) => {

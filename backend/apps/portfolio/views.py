@@ -36,3 +36,12 @@ class DashboardSummaryView(APIView):
     def get(self, request):
         result = PortfolioService.get_dashboard_summary(request.user)
         return Response(result, status=status.HTTP_200_OK)
+
+class SyncBrokerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        result = PortfolioService.sync_broker_holdings(request.user)
+        status_code = status.HTTP_200_OK if result.get('status') == 'success' else status.HTTP_400_BAD_REQUEST
+        return Response(result, status=status_code)
+

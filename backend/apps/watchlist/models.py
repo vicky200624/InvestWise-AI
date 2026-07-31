@@ -6,6 +6,9 @@ class Watchlist(models.Model):
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        ordering = ['-created_at']
+
     def __str__(self):
         return self.name
 
@@ -16,6 +19,7 @@ class WatchlistItem(models.Model):
     
     class Meta:
         unique_together = ('watchlist', 'symbol')
+        ordering = ['-added_at']
 
 class PriceAlert(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='price_alerts')
@@ -25,3 +29,7 @@ class PriceAlert(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     triggered_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+

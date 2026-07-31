@@ -52,3 +52,212 @@ Exception: At key 'stock_symbol': Can receive only one value per step. Use an An
 For troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE
 INFO 2026-07-31 03:52:59,884 views Analysis queued: TCS (SHORT) by gamingvickey59@gmail.com | task_id=e1f33c20-cd13-4aa1-8e2e-d87b1fb1022a
 INFO 2026-07-31 03:52:59,931 consumers WebSocket connected: user=gamingvickey59@gmail.com, task=e1f33c20-cd13-4aa1-8e2e-d87b1fb1022a
+INFO 2026-07-31 15:58:31,660 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 15:58:31,675 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:58:31,675 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:58:31,676 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:58:31,677 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:58:31,678 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 15:58:31,679 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 15:58:40,771 news_sentiment Loading FinBERT pipeline for sentiment analysis...
+INFO 2026-07-31 15:58:43,462 feature_engineering Engineering 60+ features identically across pipelines...
+INFO 2026-07-31 15:58:43,487 feature_engineering Engineering complete: created 74 total columns.
+INFO 2026-07-31 15:58:43,499 cleaning [AAPL] Removed 1 duplicate date rows.
+INFO 2026-07-31 15:58:43,509 cleaning [AAPL] Data cleaning complete. Final rows: 3
+INFO 2026-07-31 15:58:43,523 dataset_manager [TEST] Created immutable dataset version=v2026-test-1 (Train=70, Val=15, Test=15).
+INFO 2026-07-31 15:58:43,525 feature_store [TEST] Saved 1 rows and 3 features to Feature Store (v1.0.0-test).
+INFO 2026-07-31 15:58:43,532 model_registry Registered model candidate version=v1.0.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 15:58:43,533 model_registry Successfully promoted model v1.0.0-candidate to PRODUCTION (Approved by: Chief Risk Officer).
+WARNING 2026-07-31 15:58:43,540 cleaning [AAPL] Detected 2:1 stock split/bonus on 2025-01-03 00:00:00. Adjusting historical OHLCV prior to this date.
+INFO 2026-07-31 15:58:43,545 cleaning [AAPL] Data cleaning complete. Final rows: 3
+ERROR 2026-07-31 15:58:43,546 validation [AAPL] Data validation FAILED: {'symbol': 'AAPL', 'total_bars_inspected': 2, 'valid_bars_count': 0, 'rejected_bars_count': 2, 'duplicate_count': 0, 'outlier_flags': 0, 'is_verified': False, 'valid_bars': [], 'rejected_bars': [{'bar': {'date': '2025-01-01', 'open': -10, 'high': 100, 'low': 90, 'close': 95, 'volume': -500}, 'reasons': ['Negative value for open: -10', 'Negative value for volume: -500']}, {'bar': {'date': '2025-01-02', 'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0}, 'reasons': ['Zero price detected in active trading bar']}]}
+INFO 2026-07-31 15:59:50,159 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 15:59:50,171 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:59:50,171 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:59:50,172 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:59:50,173 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 15:59:50,174 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 15:59:50,175 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 15:59:56,619 news_sentiment Loading FinBERT pipeline for sentiment analysis...
+INFO 2026-07-31 15:59:58,563 feature_engineering Engineering 60+ features identically across pipelines...
+INFO 2026-07-31 15:59:58,585 feature_engineering Engineering complete: created 74 total columns.
+INFO 2026-07-31 15:59:58,589 cleaning [AAPL] Removed 1 duplicate date rows.
+INFO 2026-07-31 15:59:58,594 cleaning [AAPL] Data cleaning complete. Final rows: 3
+INFO 2026-07-31 15:59:58,600 dataset_manager [TEST] Created immutable dataset version=v2026-test-1 (Train=70, Val=15, Test=15).
+INFO 2026-07-31 15:59:58,602 feature_store [TEST] Saved 1 rows and 3 features to Feature Store (v1.0.0-test).
+INFO 2026-07-31 15:59:58,604 model_registry Registered model candidate version=v1.0.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 15:59:58,604 model_registry Successfully promoted model v1.0.0-candidate to PRODUCTION (Approved by: Chief Risk Officer).
+WARNING 2026-07-31 15:59:58,610 cleaning [AAPL] Detected 2:1 stock split/bonus on 2025-01-03 00:00:00. Adjusting historical OHLCV prior to this date.
+INFO 2026-07-31 15:59:58,613 cleaning [AAPL] Data cleaning complete. Final rows: 3
+ERROR 2026-07-31 15:59:58,614 validation [AAPL] Data validation FAILED: {'symbol': 'AAPL', 'total_bars_inspected': 2, 'valid_bars_count': 0, 'rejected_bars_count': 2, 'duplicate_count': 0, 'outlier_flags': 0, 'is_verified': False, 'valid_bars': [], 'rejected_bars': [{'bar': {'date': '2025-01-01', 'open': -10, 'high': 100, 'low': 90, 'close': 95, 'volume': -500}, 'reasons': ['Negative value for open: -10', 'Negative value for volume: -500']}, {'bar': {'date': '2025-01-02', 'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0}, 'reasons': ['Zero price detected in active trading bar']}]}
+INFO 2026-07-31 16:08:16,468 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:08:16,480 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:08:16,481 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:08:16,481 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:08:16,483 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:08:16,483 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:08:16,484 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:08:21,992 news_sentiment Loading FinBERT pipeline for sentiment analysis...
+INFO 2026-07-31 16:08:24,093 feature_engineering Engineering 60+ features identically across pipelines...
+INFO 2026-07-31 16:08:24,116 feature_engineering Engineering complete: created 74 total columns.
+INFO 2026-07-31 16:08:24,123 cleaning [AAPL] Removed 1 duplicate date rows.
+INFO 2026-07-31 16:08:24,130 cleaning [AAPL] Data cleaning complete. Final rows: 3
+INFO 2026-07-31 16:08:24,136 dataset_manager [TEST] Created immutable dataset version=v2026-test-1 (Train=70, Val=15, Test=15).
+INFO 2026-07-31 16:08:24,138 feature_store [TEST] Saved 1 rows and 3 features to Feature Store (v1.0.0-test).
+INFO 2026-07-31 16:08:24,141 model_registry Registered model candidate version=v1.0.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:08:24,141 model_registry Successfully promoted model v1.0.0-candidate to PRODUCTION (Approved by: Chief Risk Officer).
+WARNING 2026-07-31 16:08:24,146 cleaning [AAPL] Detected 2:1 stock split/bonus on 2025-01-03 00:00:00. Adjusting historical OHLCV prior to this date.
+INFO 2026-07-31 16:08:24,149 cleaning [AAPL] Data cleaning complete. Final rows: 3
+ERROR 2026-07-31 16:08:24,149 validation [AAPL] Data validation FAILED: {'symbol': 'AAPL', 'total_bars_inspected': 2, 'valid_bars_count': 0, 'rejected_bars_count': 2, 'duplicate_count': 0, 'outlier_flags': 0, 'is_verified': False, 'valid_bars': [], 'rejected_bars': [{'bar': {'date': '2025-01-01', 'open': -10, 'high': 100, 'low': 90, 'close': 95, 'volume': -500}, 'reasons': ['Negative value for open: -10', 'Negative value for volume: -500']}, {'bar': {'date': '2025-01-02', 'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0}, 'reasons': ['Zero price detected in active trading bar']}]}
+INFO 2026-07-31 16:14:09,609 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:14:09,622 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:14:09,623 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:14:09,623 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:14:09,624 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:14:09,625 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:14:09,626 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:14:16,108 news_sentiment Loading FinBERT pipeline for sentiment analysis...
+INFO 2026-07-31 16:14:20,442 feature_engineering Engineering 60+ features identically across pipelines...
+INFO 2026-07-31 16:14:20,469 feature_engineering Engineering complete: created 74 total columns.
+INFO 2026-07-31 16:14:20,477 cleaning [AAPL] Removed 1 duplicate date rows.
+INFO 2026-07-31 16:14:20,484 cleaning [AAPL] Data cleaning complete. Final rows: 3
+INFO 2026-07-31 16:14:20,490 dataset_manager [TEST] Created immutable dataset version=v2026-test-1 (Train=70, Val=15, Test=15).
+INFO 2026-07-31 16:14:20,493 feature_store [TEST] Saved 1 rows and 3 features to Feature Store (v1.0.0-test).
+INFO 2026-07-31 16:14:20,496 model_registry Registered model candidate version=v1.0.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:14:20,497 model_registry Successfully promoted model v1.0.0-candidate to PRODUCTION (Approved by: Chief Risk Officer).
+WARNING 2026-07-31 16:14:20,503 cleaning [AAPL] Detected 2:1 stock split/bonus on 2025-01-03 00:00:00. Adjusting historical OHLCV prior to this date.
+INFO 2026-07-31 16:14:20,506 cleaning [AAPL] Data cleaning complete. Final rows: 3
+ERROR 2026-07-31 16:14:20,507 validation [AAPL] Data validation FAILED: {'symbol': 'AAPL', 'total_bars_inspected': 2, 'valid_bars_count': 0, 'rejected_bars_count': 2, 'duplicate_count': 0, 'outlier_flags': 0, 'is_verified': False, 'valid_bars': [], 'rejected_bars': [{'bar': {'date': '2025-01-01', 'open': -10, 'high': 100, 'low': 90, 'close': 95, 'volume': -500}, 'reasons': ['Negative value for open: -10', 'Negative value for volume: -500']}, {'bar': {'date': '2025-01-02', 'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0}, 'reasons': ['Zero price detected in active trading bar']}]}
+INFO 2026-07-31 16:15:19,686 schedulers [retrain_candidate_models] Starting candidate model training...
+INFO 2026-07-31 16:15:19,688 model_registry Registered model candidate version=v2.1.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:15:19,688 schedulers [retrain_candidate_models] Candidate registered: {'version': 'v2.1.0-candidate', 'model_type': 'xgboost', 'training_date': '2026-07-31T16:15:19.688603Z', 'dataset_version': '2026-Q3-v1', 'hyperparameters': {'n_estimators': 500, 'learning_rate': 0.03, 'max_depth': 6, 'subsample': 0.8}, 'metrics': {'accuracy': 0.82, 'precision': 0.0, 'recall': 0.0, 'f1_score': 0.79, 'roc_auc': 0.86, 'rmse': 0.045, 'mae': 0.0, 'mape': 0.0, 'sharpe_ratio': 2.15, 'max_drawdown': -0.12, 'hit_ratio': 0.0}, 'feature_list': ['return_1d', 'RSI_14', 'MACD', 'EMA_20', 'fin_roe', 'val_dcf'], 'git_commit': 'HEAD', 'author': 'InvestWise AI Training Pipeline', 'status': 'Candidate', 'file_path': '/home/vicky/Documents/investai/AI/models/xgboost/v2.1.0-candidate/model.xgb'}
+INFO 2026-07-31 16:15:54,841 schedulers [retrain_candidate_models] Starting candidate model training...
+WARNING 2026-07-31 16:15:54,841 model_registry Version v2.1.0-candidate already registered. Updating entry.
+INFO 2026-07-31 16:15:54,842 model_registry Registered model candidate version=v2.1.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:15:54,842 schedulers [retrain_candidate_models] Candidate registered: {'version': 'v2.1.0-candidate', 'model_type': 'xgboost', 'training_date': '2026-07-31T16:15:54.842264Z', 'dataset_version': '2026-Q3-v1', 'hyperparameters': {'n_estimators': 500, 'learning_rate': 0.03, 'max_depth': 6, 'subsample': 0.8}, 'metrics': {'accuracy': 0.82, 'precision': 0.0, 'recall': 0.0, 'f1_score': 0.79, 'roc_auc': 0.86, 'rmse': 0.045, 'mae': 0.0, 'mape': 0.0, 'sharpe_ratio': 2.15, 'max_drawdown': -0.12, 'hit_ratio': 0.0}, 'feature_list': ['return_1d', 'RSI_14', 'MACD', 'EMA_20', 'fin_roe', 'val_dcf'], 'git_commit': 'HEAD', 'author': 'InvestWise AI Training Pipeline', 'status': 'Candidate', 'file_path': '/home/vicky/Documents/investai/AI/models/xgboost/v2.1.0-candidate/model.xgb'}
+INFO 2026-07-31 16:16:01,254 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:16:01,263 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:16:01,263 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+WARNING 2026-07-31 16:16:01,264 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:16:01,264 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:16:01,264 fundamentals Using yfinance fallback for income statement of RELIANCE.NS
+WARNING 2026-07-31 16:16:01,264 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:16:01,265 fundamentals Using yfinance fallback for profile of RELIANCE.NS
+WARNING 2026-07-31 16:16:04,323 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:16:04,323 fundamentals Using yfinance fallback for balance sheet of RELIANCE.NS
+INFO 2026-07-31 16:16:04,615 rag_engine Initializing ChromaDB client at ./chroma_db
+WARNING 2026-07-31 16:16:04,727 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:16:04,727 fundamentals Using yfinance fallback for cash flow of RELIANCE.NS
+WARNING 2026-07-31 16:16:04,987 news_sentiment FINNHUB_API_KEY not set.
+WARNING 2026-07-31 16:16:05,055 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:16:05,057 fundamentals Using yfinance fallback for ratios of RELIANCE.NS
+INFO 2026-07-31 16:18:46,168 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:18:46,171 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:18:46,179 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:19:19,107 schedulers [retrain_candidate_models] Starting candidate model training...
+WARNING 2026-07-31 16:19:19,108 model_registry Version v2.1.0-candidate already registered. Updating entry.
+INFO 2026-07-31 16:19:19,108 model_registry Registered model candidate version=v2.1.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:19:19,108 schedulers [retrain_candidate_models] Candidate registered: {'version': 'v2.1.0-candidate', 'model_type': 'xgboost', 'training_date': '2026-07-31T16:19:19.108402Z', 'dataset_version': '2026-Q3-v1', 'hyperparameters': {'n_estimators': 500, 'learning_rate': 0.03, 'max_depth': 6, 'subsample': 0.8}, 'metrics': {'accuracy': 0.82, 'precision': 0.0, 'recall': 0.0, 'f1_score': 0.79, 'roc_auc': 0.86, 'rmse': 0.045, 'mae': 0.0, 'mape': 0.0, 'sharpe_ratio': 2.15, 'max_drawdown': -0.12, 'hit_ratio': 0.0}, 'feature_list': ['return_1d', 'RSI_14', 'MACD', 'EMA_20', 'fin_roe', 'val_dcf'], 'git_commit': 'HEAD', 'author': 'InvestWise AI Training Pipeline', 'status': 'Candidate', 'file_path': '/home/vicky/Documents/investai/AI/models/xgboost/v2.1.0-candidate/model.xgb'}
+INFO 2026-07-31 16:19:26,013 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:19:26,023 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+WARNING 2026-07-31 16:19:26,023 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:26,023 fundamentals Using yfinance fallback for income statement of RELIANCE.NS
+INFO 2026-07-31 16:19:26,024 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:19:26,025 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+WARNING 2026-07-31 16:19:26,026 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:26,026 fundamentals Using yfinance fallback for profile of RELIANCE.NS
+WARNING 2026-07-31 16:19:27,501 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:27,501 fundamentals Using yfinance fallback for balance sheet of RELIANCE.NS
+WARNING 2026-07-31 16:19:27,822 news_sentiment FINNHUB_API_KEY not set.
+WARNING 2026-07-31 16:19:27,891 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:27,891 fundamentals Using yfinance fallback for cash flow of RELIANCE.NS
+INFO 2026-07-31 16:19:28,303 rag_engine Initializing ChromaDB client at ./chroma_db
+WARNING 2026-07-31 16:19:28,599 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:28,599 fundamentals Using yfinance fallback for ratios of RELIANCE.NS
+INFO 2026-07-31 16:19:33,968 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:19:33,970 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:19:33,976 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:19:51,434 schedulers [retrain_candidate_models] Starting candidate model training...
+WARNING 2026-07-31 16:19:51,434 model_registry Version v2.1.0-candidate already registered. Updating entry.
+INFO 2026-07-31 16:19:51,434 model_registry Registered model candidate version=v2.1.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:19:51,434 schedulers [retrain_candidate_models] Candidate registered: {'version': 'v2.1.0-candidate', 'model_type': 'xgboost', 'training_date': '2026-07-31T16:19:51.434579Z', 'dataset_version': '2026-Q3-v1', 'hyperparameters': {'n_estimators': 500, 'learning_rate': 0.03, 'max_depth': 6, 'subsample': 0.8}, 'metrics': {'accuracy': 0.82, 'precision': 0.0, 'recall': 0.0, 'f1_score': 0.79, 'roc_auc': 0.86, 'rmse': 0.045, 'mae': 0.0, 'mape': 0.0, 'sharpe_ratio': 2.15, 'max_drawdown': -0.12, 'hit_ratio': 0.0}, 'feature_list': ['return_1d', 'RSI_14', 'MACD', 'EMA_20', 'fin_roe', 'val_dcf'], 'git_commit': 'HEAD', 'author': 'InvestWise AI Training Pipeline', 'status': 'Candidate', 'file_path': '/home/vicky/Documents/investai/AI/models/xgboost/v2.1.0-candidate/model.xgb'}
+INFO 2026-07-31 16:19:56,962 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:19:56,972 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+WARNING 2026-07-31 16:19:56,972 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:56,972 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:19:56,972 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:19:56,973 fundamentals Using yfinance fallback for income statement of RELIANCE.NS
+WARNING 2026-07-31 16:19:56,973 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:56,974 fundamentals Using yfinance fallback for profile of RELIANCE.NS
+WARNING 2026-07-31 16:19:59,177 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:59,205 fundamentals Using yfinance fallback for balance sheet of RELIANCE.NS
+WARNING 2026-07-31 16:19:59,223 news_sentiment FINNHUB_API_KEY not set.
+INFO 2026-07-31 16:19:59,798 rag_engine Initializing ChromaDB client at ./chroma_db
+WARNING 2026-07-31 16:19:59,899 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:19:59,909 fundamentals Using yfinance fallback for cash flow of RELIANCE.NS
+WARNING 2026-07-31 16:20:00,344 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:20:00,345 fundamentals Using yfinance fallback for ratios of RELIANCE.NS
+INFO 2026-07-31 16:20:05,166 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:20:05,168 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:20:05,174 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:20:05,693 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:20:05,712 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:20:05,712 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:20:05,713 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:20:05,716 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:20:05,718 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:20:05,721 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:20:06,552 news_sentiment Loading FinBERT pipeline for sentiment analysis...
+INFO 2026-07-31 16:20:08,423 feature_engineering Engineering 60+ features identically across pipelines...
+INFO 2026-07-31 16:20:08,445 feature_engineering Engineering complete: created 74 total columns.
+INFO 2026-07-31 16:20:08,450 cleaning [AAPL] Removed 1 duplicate date rows.
+INFO 2026-07-31 16:20:08,455 cleaning [AAPL] Data cleaning complete. Final rows: 3
+INFO 2026-07-31 16:20:08,462 dataset_manager [TEST] Created immutable dataset version=v2026-test-1 (Train=70, Val=15, Test=15).
+INFO 2026-07-31 16:20:08,464 feature_store [TEST] Saved 1 rows and 3 features to Feature Store (v1.0.0-test).
+INFO 2026-07-31 16:20:08,466 model_registry Registered model candidate version=v1.0.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:20:08,467 model_registry Successfully promoted model v1.0.0-candidate to PRODUCTION (Approved by: Chief Risk Officer).
+WARNING 2026-07-31 16:20:08,471 cleaning [AAPL] Detected 2:1 stock split/bonus on 2025-01-03 00:00:00. Adjusting historical OHLCV prior to this date.
+INFO 2026-07-31 16:20:08,474 cleaning [AAPL] Data cleaning complete. Final rows: 3
+ERROR 2026-07-31 16:20:08,475 validation [AAPL] Data validation FAILED: {'symbol': 'AAPL', 'total_bars_inspected': 2, 'valid_bars_count': 0, 'rejected_bars_count': 2, 'duplicate_count': 0, 'outlier_flags': 0, 'is_verified': False, 'valid_bars': [], 'rejected_bars': [{'bar': {'date': '2025-01-01', 'open': -10, 'high': 100, 'low': 90, 'close': 95, 'volume': -500}, 'reasons': ['Negative value for open: -10', 'Negative value for volume: -500']}, {'bar': {'date': '2025-01-02', 'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0}, 'reasons': ['Zero price detected in active trading bar']}]}
+INFO 2026-07-31 16:24:50,716 schedulers [retrain_candidate_models] Starting candidate model training...
+WARNING 2026-07-31 16:24:50,718 model_registry Version v2.1.0-candidate already registered. Updating entry.
+INFO 2026-07-31 16:24:50,718 model_registry Registered model candidate version=v2.1.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:24:50,718 schedulers [retrain_candidate_models] Candidate registered: {'version': 'v2.1.0-candidate', 'model_type': 'xgboost', 'training_date': '2026-07-31T16:24:50.718602Z', 'dataset_version': '2026-Q3-v1', 'hyperparameters': {'n_estimators': 500, 'learning_rate': 0.03, 'max_depth': 6, 'subsample': 0.8}, 'metrics': {'accuracy': 0.82, 'precision': 0.0, 'recall': 0.0, 'f1_score': 0.79, 'roc_auc': 0.86, 'rmse': 0.045, 'mae': 0.0, 'mape': 0.0, 'sharpe_ratio': 2.15, 'max_drawdown': -0.12, 'hit_ratio': 0.0}, 'feature_list': ['return_1d', 'RSI_14', 'MACD', 'EMA_20', 'fin_roe', 'val_dcf'], 'git_commit': 'HEAD', 'author': 'InvestWise AI Training Pipeline', 'status': 'Candidate', 'file_path': '/home/vicky/Documents/investai/AI/models/xgboost/v2.1.0-candidate/model.xgb'}
+INFO 2026-07-31 16:24:56,716 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:24:56,726 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+WARNING 2026-07-31 16:24:56,726 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:24:56,726 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:24:56,727 fundamentals Using yfinance fallback for income statement of RELIANCE.NS
+INFO 2026-07-31 16:24:56,727 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+WARNING 2026-07-31 16:24:56,728 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:24:56,728 fundamentals Using yfinance fallback for profile of RELIANCE.NS
+WARNING 2026-07-31 16:24:58,654 news_sentiment FINNHUB_API_KEY not set.
+WARNING 2026-07-31 16:24:58,722 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:24:58,722 fundamentals Using yfinance fallback for balance sheet of RELIANCE.NS
+INFO 2026-07-31 16:24:58,915 rag_engine Initializing ChromaDB client at ./chroma_db
+WARNING 2026-07-31 16:24:59,128 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:24:59,129 fundamentals Using yfinance fallback for cash flow of RELIANCE.NS
+WARNING 2026-07-31 16:24:59,470 fundamentals FMP_API_KEY not set, falling back to yfinance where applicable.
+INFO 2026-07-31 16:24:59,470 fundamentals Using yfinance fallback for ratios of RELIANCE.NS
+INFO 2026-07-31 16:25:04,837 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:25:04,840 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:25:04,847 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:25:05,397 orchestrator Starting InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:25:05,416 financial_intelligence [Cluster 2] Running Financial Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:25:05,417 market_intelligence [Cluster 3] Running Market Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:25:05,418 research_intelligence [Cluster 1] Running Research Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:25:05,421 decision_intelligence [Cluster 4] Running Decision Intelligence for RELIANCE.NS
+INFO 2026-07-31 16:25:05,422 portfolio_optimization [Portfolio Optimization] Evaluating portfolio impact for RELIANCE.NS
+INFO 2026-07-31 16:25:05,425 orchestrator Completed InvestWise AI 3.0 analysis pipeline for RELIANCE.NS
+INFO 2026-07-31 16:25:06,090 news_sentiment Loading FinBERT pipeline for sentiment analysis...
+INFO 2026-07-31 16:25:07,985 feature_engineering Engineering 60+ features identically across pipelines...
+INFO 2026-07-31 16:25:08,022 feature_engineering Engineering complete: created 74 total columns.
+INFO 2026-07-31 16:25:08,033 cleaning [AAPL] Removed 1 duplicate date rows.
+INFO 2026-07-31 16:25:08,044 cleaning [AAPL] Data cleaning complete. Final rows: 3
+INFO 2026-07-31 16:25:08,056 dataset_manager [TEST] Created immutable dataset version=v2026-test-1 (Train=70, Val=15, Test=15).
+INFO 2026-07-31 16:25:08,059 feature_store [TEST] Saved 1 rows and 3 features to Feature Store (v1.0.0-test).
+INFO 2026-07-31 16:25:08,066 model_registry Registered model candidate version=v1.0.0-candidate. Status='Candidate'. Requires human approval to promote to Production.
+INFO 2026-07-31 16:25:08,066 model_registry Successfully promoted model v1.0.0-candidate to PRODUCTION (Approved by: Chief Risk Officer).
+WARNING 2026-07-31 16:25:08,073 cleaning [AAPL] Detected 2:1 stock split/bonus on 2025-01-03 00:00:00. Adjusting historical OHLCV prior to this date.
+INFO 2026-07-31 16:25:08,078 cleaning [AAPL] Data cleaning complete. Final rows: 3
+ERROR 2026-07-31 16:25:08,079 validation [AAPL] Data validation FAILED: {'symbol': 'AAPL', 'total_bars_inspected': 2, 'valid_bars_count': 0, 'rejected_bars_count': 2, 'duplicate_count': 0, 'outlier_flags': 0, 'is_verified': False, 'valid_bars': [], 'rejected_bars': [{'bar': {'date': '2025-01-01', 'open': -10, 'high': 100, 'low': 90, 'close': 95, 'volume': -500}, 'reasons': ['Negative value for open: -10', 'Negative value for volume: -500']}, {'bar': {'date': '2025-01-02', 'open': 0, 'high': 0, 'low': 0, 'close': 0, 'volume': 0}, 'reasons': ['Zero price detected in active trading bar']}]}

@@ -3,18 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { motion } from 'framer-motion';
+import { authApi } from '../../services/api';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setErrorMessage('');
+    try {
+      await authApi.login(email, password);
       navigate('/dashboard');
-    }, 1000);
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.detail || 'Invalid username/email or password.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -38,15 +47,22 @@ export default function Login() {
         </div>
 
         <Card className="p-8 border border-white/10 bg-white/5 backdrop-blur-2xl">
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-sm text-center">
+              {errorMessage}
+            </div>
+          )}
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5" htmlFor="email">Email Address</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5" htmlFor="email">Username or Email</label>
               <input 
                 id="email" 
-                type="email" 
-                required 
+                type="text" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-white transition-all" 
-                placeholder="you@example.com"
+                placeholder="username or you@example.com"
               />
             </div>
             <div>
@@ -57,7 +73,9 @@ export default function Login() {
               <input 
                 id="password" 
                 type="password" 
-                required 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-white transition-all" 
                 placeholder="••••••••"
               />
@@ -67,6 +85,7 @@ export default function Login() {
               Sign In
             </Button>
           </form>
+
           
           <div className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
             Don't have an account? <a href="#" className="text-white font-medium hover:underline">Create one</a>

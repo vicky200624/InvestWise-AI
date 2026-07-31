@@ -1,0 +1,42 @@
+{
+  "models": {
+    "v2.1.0-candidate": {
+      "version": "v2.1.0-candidate",
+      "model_type": "xgboost",
+      "training_date": "2026-07-31T16:24:50.718602Z",
+      "dataset_version": "2026-Q3-v1",
+      "hyperparameters": {
+        "n_estimators": 500,
+        "learning_rate": 0.03,
+        "max_depth": 6,
+        "subsample": 0.8
+      },
+      "metrics": {
+        "accuracy": 0.82,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.79,
+        "roc_auc": 0.86,
+        "rmse": 0.045,
+        "mae": 0.0,
+        "mape": 0.0,
+        "sharpe_ratio": 2.15,
+        "max_drawdown": -0.12,
+        "hit_ratio": 0.0
+      },
+      "feature_list": [
+        "return_1d",
+        "RSI_14",
+        "MACD",
+        "EMA_20",
+        "fin_roe",
+        "val_dcf"
+      ],
+      "git_commit": "HEAD",
+      "author": "InvestWise AI Training Pipeline",
+      "status": "Candidate",
+      "file_path": "/home/vicky/Documents/investai/AI/models/xgboost/v2.1.0-candidate/model.xgb"
+    }
+  },
+  "production_version": ""
+}

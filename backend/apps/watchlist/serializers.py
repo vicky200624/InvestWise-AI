@@ -2,10 +2,36 @@ from rest_framework import serializers
 from .models import Watchlist, WatchlistItem, PriceAlert
 
 class WatchlistItemSerializer(serializers.ModelSerializer):
+    watchlist = serializers.PrimaryKeyRelatedField(
+        queryset=Watchlist.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = WatchlistItem
         fields = ('id', 'watchlist', 'symbol', 'added_at')
         read_only_fields = ('id', 'added_at')
+        validators = []
+
+    def create(self, validated_data):
+        watchlist = validated_data.get('watchlist')
+        if not watchlist:
+            user = self.context['request'].user
+            watchlist, _ = Watchlist.objects.get_or_create(
+                user=user,
+                defaults={'name': 'Default Watchlist'}
+            )
+            validated_data['watchlist'] = watchlist
+        symbol = validated_data.get('symbol')
+        item, _ = WatchlistItem.objects.get_or_create(
+            watchlist=watchlist,
+            symbol=symbol,
+            defaults=validated_data
+        )
+        return item
+
+
 
 class WatchlistSerializer(serializers.ModelSerializer):
     items = WatchlistItemSerializer(many=True, read_only=True)

@@ -11,6 +11,8 @@ psycopg2-binary==2.9.10
 mysqlclient==2.2.8
 python-dotenv==1.2.2
 sqlparse==0.5.5
+dj-database-url==2.3.0
+
 
 # --- Async Infrastructure (Celery + Redis + Channels) ---
 celery==5.6.3

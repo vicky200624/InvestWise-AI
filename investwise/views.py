@@ -38,9 +38,6 @@ from django.views.decorators.csrf import csrf_exempt
 # Google GenAI — use the new SDK (google-genai) as primary
 from google import genai
 
-# Google GenAI — legacy SDK for voice_chat_api (uses GenerativeModel pattern)
-import google.generativeai as genai_legacy
-
 from elevenlabs.client import ElevenLabs
 from deepgram import DeepgramClient
 
@@ -602,8 +599,7 @@ def voice_chat_api(request):
     if request.method == 'POST' and request.FILES.get('audio'):
         try:
             # Initialize clients
-            genai_legacy.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-            gemini_model = genai_legacy.GenerativeModel('gemini-2.5-flash')
+            gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
             eleven_client = ElevenLabs(api_key=os.environ.get("ELEVENLABS_API_KEY"))
             deepgram = DeepgramClient(api_key=os.environ.get("DEEPGRAM_API_KEY"))
 
@@ -620,8 +616,11 @@ def voice_chat_api(request):
             if not user_text.strip():
                 return JsonResponse({"error": "No speech detected."}, status=400)
 
-            # Gemini LLM
-            llm_response = gemini_model.generate_content(user_text)
+            # Gemini LLM using modern google-genai SDK
+            llm_response = gemini_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=user_text,
+            )
             ai_text = llm_response.text
 
             # ElevenLabs TTS
