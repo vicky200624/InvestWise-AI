@@ -65,9 +65,9 @@ class RegisterOrLinkView(views.APIView):
         email = request.data.get('email')
         
         # 1. Check for duplicates
-        user = User.objects.filter(email=email).first()
+        is_duplicate = AccountsService.check_duplicate_email(email)
         
-        if user:
+        if is_duplicate:
             # If you are doing account linking (e.g., attaching a broker):
             # link_broker_to_account(user, request.data.get('broker_data'))
             # return Response({"message": "Account linked successfully."})

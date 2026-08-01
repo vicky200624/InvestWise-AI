@@ -1,9 +1,20 @@
+from django.contrib.auth import get_user_model
+User = get_user_model()
 import logging
-from django.contrib.auth.models import User
+from django.conf import settings
 from .models import StockAnalysis, AgentTask, InvestmentFeedback
-from AI.learning.reward_model import RewardCalculator
+from .repositories import ResearchRepository
 
-logger = logging.getLogger(__name__)
+try:
+    from AI.learning.reward_model import RewardCalculator
+except ImportError:
+    class RewardCalculator:
+        @staticmethod
+        def calculate_reward(feedback_type, predicted_score=50.0):
+            rewards = {'POSITIVE': 1.0, 'NEGATIVE': -1.0, 'NEUTRAL': 0.0}
+            return rewards.get(feedback_type, 0.0)
+
+logger = logging.getLogger('investwise')
 
 class ResearchService:
     @staticmethod
@@ -11,7 +22,7 @@ class ResearchService:
         """
         Create AgentTask and trigger asynchronous or synchronous AI analysis.
         """
-        task = AgentTask.objects.create(
+        task = ResearchRepository.create_agent_task(
             user=user,
             task_type='STOCK_ANALYSIS',
             status='RUNNING',
@@ -25,8 +36,8 @@ class ResearchService:
             from AI.agents.orchestrator import run_analysis
             ai_result = run_analysis(stock_symbol, time_horizon)
 
-            # Persist analysis to database
-            analysis = StockAnalysis.objects.create(
+            # Persist analysis to database via repository
+            analysis = ResearchRepository.create_analysis(
                 user=user,
                 stock_symbol=stock_symbol.upper(),
                 time_horizon=time_horizon,
@@ -45,7 +56,7 @@ class ResearchService:
             task.progress_percent = 100
             task.current_step = 'Analysis completed.'
             task.result_data = {'analysis_id': analysis.id}
-            task.save()
+            ResearchRepository.save_task(task)
 
             top_factors_str = ', '.join(str(f) for f in analysis.top_factors[:3]) if analysis.top_factors else "Robust financial metrics"
             narrative = (
@@ -70,7 +81,7 @@ class ResearchService:
             logger.error(f"Error executing analysis for {stock_symbol}: {e}")
             task.status = 'FAILED'
             task.error_message = str(e)
-            task.save()
+            ResearchRepository.save_task(task)
             return {
                 'task_id': str(task.id),
                 'status': 'FAILED',
@@ -79,12 +90,12 @@ class ResearchService:
 
     @staticmethod
     def submit_feedback(user: User, analysis_id: int, feedback_type: str, comment: str = '') -> dict:
-        analysis = StockAnalysis.objects.get(id=analysis_id)
+        analysis = ResearchRepository.get_analysis_by_id(analysis_id)
         reward = RewardCalculator.calculate_reward(
             feedback_type=feedback_type,
             predicted_score=analysis.investment_score or 50.0
         )
-        feedback = InvestmentFeedback.objects.create(
+        feedback = ResearchRepository.create_feedback(
             user=user,
             analysis=analysis,
             feedback_type=feedback_type,

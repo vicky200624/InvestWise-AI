@@ -1,9 +1,9 @@
 import uuid
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class StockAnalysis(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analyses')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='analyses')
     stock_symbol = models.CharField(max_length=20, db_index=True)
     stock_name = models.CharField(max_length=200, blank=True)
     time_horizon = models.CharField(max_length=10, choices=[('SHORT', 'Short-term'), ('LONG', 'Long-term')])
@@ -31,7 +31,7 @@ class StockAnalysis(models.Model):
 
 class AgentTask(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='agent_tasks')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='agent_tasks')
     task_type = models.CharField(max_length=50)
     status = models.CharField(max_length=20, choices=[
         ('PENDING','Pending'),
@@ -71,7 +71,7 @@ class RAGDocument(models.Model):
         ordering = ['-ingested_at']
 
 class InvestmentFeedback(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     analysis = models.ForeignKey(StockAnalysis, on_delete=models.CASCADE, related_name='feedback')
     feedback_type = models.CharField(max_length=20)
     comment = models.TextField(blank=True)

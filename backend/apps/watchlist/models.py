@@ -1,8 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class Watchlist(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='watchlists')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='watchlists')
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -22,7 +22,7 @@ class WatchlistItem(models.Model):
         ordering = ['-added_at']
 
 class PriceAlert(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='price_alerts')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='price_alerts')
     symbol = models.CharField(max_length=20)
     target_price = models.FloatField()
     condition = models.CharField(max_length=10, choices=[('ABOVE', 'Above'), ('BELOW', 'Below')])

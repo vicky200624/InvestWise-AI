@@ -42,17 +42,17 @@ def run_financial_intelligence(state: AgentState, fmp_api_key: str = "") -> Agen
     )
 
     # 3. Calculate 21 Financial Metrics
-    revenue = float(curr_inc.get("revenue", 1000000)) or 1000000.0
-    prior_rev = float(prior_inc.get("revenue", revenue * 0.9)) or (revenue * 0.9)
+    revenue = float(curr_inc.get("revenue") or 1000000) or 1000000.0
+    prior_rev = float(prior_inc.get("revenue") or (revenue * 0.9)) or (revenue * 0.9)
     revenue_growth = ((revenue - prior_rev) / prior_rev) * 100.0
 
-    net_income = float(curr_inc.get("netIncome", revenue * 0.15))
-    prior_net = float(prior_inc.get("netIncome", net_income * 0.9)) or (net_income * 0.9)
+    net_income = float(curr_inc.get("netIncome") or (revenue * 0.15))
+    prior_net = float(prior_inc.get("netIncome") or (net_income * 0.9)) or (net_income * 0.9)
     eps_growth = ((net_income - prior_net) / max(1.0, abs(prior_net))) * 100.0
 
-    total_assets = float(curr_bs.get("totalAssets", 5000000)) or 5000000.0
-    total_equity = float(curr_bs.get("totalStockholdersEquity", 2500000)) or 2500000.0
-    total_debt = float(curr_bs.get("totalDebt", curr_bs.get("longTermDebt", 500000)))
+    total_assets = float(curr_bs.get("totalAssets") or 5000000) or 5000000.0
+    total_equity = float(curr_bs.get("totalStockholdersEquity") or 2500000) or 2500000.0
+    total_debt = float(curr_bs.get("totalDebt") or curr_bs.get("longTermDebt") or 500000)
 
     roe = (net_income / total_equity) * 100.0
     roa = (net_income / total_assets) * 100.0
@@ -73,7 +73,7 @@ def run_financial_intelligence(state: AgentState, fmp_api_key: str = "") -> Agen
     dividend_growth = 5.0
     book_value = total_equity / max(1.0, float(curr_inc.get("weightedAverageShsOut", 1000000)))
 
-    pe_ratio = float(ratios.get("peRatio", 22.0)) or 22.0
+    pe_ratio = float(ratios.get("peRatio") or 22.0) or 22.0
     peg_ratio = pe_ratio / max(1.0, eps_growth)
 
     # 4. DCF Intrinsic Value calculation
@@ -132,7 +132,7 @@ def run_financial_intelligence(state: AgentState, fmp_api_key: str = "") -> Agen
     }
 
     return {
-        "financial_intelligence": cluster_output,
+        "financial_intelligence": cluscline-free/glm-5.2ter_output,
         "financial_metrics": metrics_dict,
         "fundamental_analysis": cluster_output,
     }

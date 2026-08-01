@@ -1,22 +1,24 @@
+from django.contrib.auth import get_user_model
+User = get_user_model()
 import os
-from django.contrib.auth.models import User
+from django.conf import settings
 from .models import ChatSession, ChatMessage
+from .repositories import ChatRepository
 
 class ChatService:
     @staticmethod
     def process_message(user: User, session_id: int, content: str) -> dict:
-        try:
-            session = ChatSession.objects.get(id=session_id, user=user)
-        except ChatSession.DoesNotExist:
+        session = ChatRepository.get_session_by_id(session_id, user)
+        if not session:
             return {'error': 'Session not found'}
 
-        # Save user message
-        ChatMessage.objects.create(session=session, user=user, role='user', content=content)
+        # Save user message via repository
+        ChatRepository.create_message(session, user, 'user', content)
 
         # Update session title if default
         if session.title == "New Conversation":
             session.title = content[:25] + "..." if len(content) > 25 else content
-            session.save()
+            ChatRepository.save_session(session)
 
         # Invoke real LangChain RAG with Gemini if API key is configured, else fallback
         ai_response_content = None
@@ -24,9 +26,9 @@ class ChatService:
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
-                # Retrieve context from history
-                recent_history = ChatMessage.objects.filter(session=session).order_by('-timestamp')[1:7]
-                formatted_history = "".join([f"{'User' if m.role == 'user' else 'Assistant'}: {m.content}\n" for m in reversed(recent_history)])
+                # Retrieve context from history via repository
+                recent_history = ChatRepository.get_recent_messages(session, limit=7)
+                formatted_history = "".join([f"{'User' if m.role == 'user' else 'Assistant'}: {m.content}\n" for m in reversed(list(recent_history))])
                 prompt = (
                     "You are the InvestWise AI Assistant, a helpful financial expert.\n"
                     "Use general financial knowledge and portfolio insight to answer concisely.\n"
@@ -49,13 +51,8 @@ class ChatService:
             else:
                 ai_response_content = f"I am InvestWise AI, your autonomous investment advisor. Regarding '{content}', our models recommend monitoring market sentiment and maintaining a balanced portfolio allocation."
 
-        # Save AI response
-        ai_message = ChatMessage.objects.create(
-            session=session, 
-            user=user, 
-            role='ai', 
-            content=ai_response_content
-        )
+        # Save AI response via repository
+        ai_message = ChatRepository.create_message(session, user, 'ai', ai_response_content)
 
         return {
             'session_id': session.id,

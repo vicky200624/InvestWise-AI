@@ -39,6 +39,11 @@ INSTALLED_APPS = [
     'apps.research',
     'apps.chat',
     'apps.watchlist',
+    'apps.companies',
+    'apps.market',
+    'apps.alerts',
+    'apps.feedback',
+    'apps.analytics',
 ]
 
 MIDDLEWARE = [

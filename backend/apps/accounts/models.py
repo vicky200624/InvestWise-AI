@@ -1,10 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from core.encryption import encrypt_value, decrypt_value
 
 class UserPortfolio(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     total_invested = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
     current_value = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
     xirr = models.FloatField(default=0.0)
@@ -12,7 +12,7 @@ class UserPortfolio(models.Model):
 
 class BrokerCredentials(models.Model):
     BROKER_CHOICES = [('ANGELONE', 'Angel One'), ('ZERODHA', 'Zerodha')]
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='broker_credentials')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='broker_credentials')
     broker_name = models.CharField(max_length=20, choices=BROKER_CHOICES, default='ANGELONE')
     _api_key = models.CharField(max_length=255, blank=True, default='', db_column='api_key')
     client_id = models.CharField(max_length=100, blank=True, default='')

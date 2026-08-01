@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import StockAnalysis, AgentTask, InvestmentFeedback
 from .serializers import StockAnalysisSerializer, AgentTaskSerializer, InvestmentFeedbackSerializer
 from .services import ResearchService
+from .repositories import ResearchRepository
 from core.permissions import IsOwner
 
 class StockAnalysisViewSet(viewsets.ReadOnlyModelViewSet):
@@ -12,14 +13,14 @@ class StockAnalysisViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return StockAnalysis.objects.filter(user=self.request.user).order_by('-created_at')
+        return ResearchRepository.get_analyses_by_user(self.request.user)
 
 class AgentTaskViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AgentTaskSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return AgentTask.objects.filter(user=self.request.user).order_by('-created_at')
+        return ResearchRepository.get_tasks_by_user(self.request.user)
 
 class AnalyzeStockView(APIView):
     permission_classes = [IsAuthenticated]

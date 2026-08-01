@@ -9,14 +9,16 @@ class WatchlistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return Watchlist.objects.filter(user=self.request.user)
+        from .repositories import WatchlistRepository
+        return WatchlistRepository.get_watchlists_by_user(self.request.user)
 
 class WatchlistItemViewSet(viewsets.ModelViewSet):
     serializer_class = WatchlistItemSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return WatchlistItem.objects.filter(watchlist__user=self.request.user)
+        from .repositories import WatchlistRepository
+        return WatchlistRepository.get_watchlist_items_by_user(self.request.user)
 
 
 
@@ -25,4 +27,5 @@ class PriceAlertViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return PriceAlert.objects.filter(user=self.request.user)
+        from .repositories import WatchlistRepository
+        return WatchlistRepository.get_price_alerts_by_user(self.request.user)

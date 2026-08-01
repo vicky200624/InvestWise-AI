@@ -12,7 +12,8 @@ class AssetHoldingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return AssetHolding.objects.filter(user=self.request.user)
+        from .repositories import PortfolioRepository
+        return PortfolioRepository.get_asset_holdings_by_user(self.request.user)
 
 class PortfolioOptimizeView(APIView):
     permission_classes = [IsAuthenticated]

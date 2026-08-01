@@ -250,11 +250,20 @@ export const authApi = {
     const response = await api.put('/api/v1/auth/broker/', data);
     return response.data;
   },
+  getLinkedBrokers: async (): Promise<any[]> => {
+    // Just a placeholder mapping to broker credentials or list if implemented
+    const response = await api.get('/api/v1/auth/broker/');
+    return [response.data]; // Wrap in array as expected by frontend
+  },
+  linkBroker: async (data: any): Promise<any> => {
+    const response = await api.post('/api/v1/auth/broker/', data);
+    return response.data;
+  },
   getPortfolioSummaryAuth: async () => {
     const response = await api.get('/api/v1/auth/portfolio/');
     return response.data;
   },
 };
 
-export default api;
 
+export default api;

@@ -1,5 +1,7 @@
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.conf import settings
 from .models import UserPortfolio, BrokerCredentials
 
 class UserSerializer(serializers.ModelSerializer):

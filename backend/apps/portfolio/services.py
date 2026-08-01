@@ -1,4 +1,6 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
+from django.conf import settings
 from .models import AssetHolding
 from apps.accounts.models import UserPortfolio
 import datetime
@@ -7,7 +9,8 @@ class PortfolioService:
     @staticmethod
     def optimize_portfolio(user: User, method: str = 'markowitz', symbols: list = None) -> dict:
         if not symbols:
-            holdings = AssetHolding.objects.filter(user=user)
+            from .repositories import PortfolioRepository
+            holdings = PortfolioRepository.get_asset_holdings_by_user(user)
             symbols = [h.symbol for h in holdings if h.symbol]
             if len(symbols) < 2:
                 symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA']
@@ -29,7 +32,8 @@ class PortfolioService:
 
     @staticmethod
     def get_performance(user: User) -> dict:
-        portfolio, _ = UserPortfolio.objects.get_or_create(user=user)
+        from .repositories import PortfolioRepository
+        portfolio = PortfolioRepository.get_or_create_portfolio(user)
         return {
             'total_invested': float(portfolio.total_invested),
             'current_value': float(portfolio.current_value),
@@ -39,8 +43,9 @@ class PortfolioService:
 
     @staticmethod
     def get_dashboard_summary(user: User) -> dict:
-        portfolio, _ = UserPortfolio.objects.get_or_create(user=user)
-        holdings = AssetHolding.objects.filter(user=user)
+        from .repositories import PortfolioRepository
+        portfolio = PortfolioRepository.get_or_create_portfolio(user)
+        holdings = PortfolioRepository.get_asset_holdings_by_user(user)
         
         total_current = 0.0
         total_invested = 0.0
@@ -134,10 +139,9 @@ class PortfolioService:
 
     @staticmethod
     def sync_broker_holdings(user: User) -> dict:
-        from apps.accounts.models import BrokerCredentials
-        try:
-            creds = BrokerCredentials.objects.get(user=user, is_active=True)
-        except BrokerCredentials.DoesNotExist:
+        from .repositories import PortfolioRepository
+        creds = PortfolioRepository.get_broker_credentials_active(user)
+        if not creds:
             return {'status': 'error', 'message': 'No active broker credentials found.'}
 
         synced_count = 0
@@ -157,7 +161,7 @@ class PortfolioService:
                         avg_price = float(h.get('averageprice', 0.0))
                         ltp = float(h.get('ltp', avg_price))
                         if symbol and qty > 0:
-                            AssetHolding.objects.update_or_create(
+                            PortfolioRepository.update_or_create_asset_holding(
                                 user=user,
                                 symbol=symbol,
                                 defaults={
