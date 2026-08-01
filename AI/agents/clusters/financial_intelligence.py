@@ -132,7 +132,7 @@ def run_financial_intelligence(state: AgentState, fmp_api_key: str = "") -> Agen
     }
 
     return {
-        "financial_intelligence": cluscline-free/glm-5.2ter_output,
+        "financial_intelligence": cluster_output,
         "financial_metrics": metrics_dict,
         "fundamental_analysis": cluster_output,
     }

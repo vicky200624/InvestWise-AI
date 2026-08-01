@@ -3,10 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { motion } from 'framer-motion';
-import { authApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -18,16 +19,15 @@ export default function Login() {
     setErrorMessage('');
 
     try {
-      authApi.logout(); // Wipe old session artifacts
-      await authApi.login(email, password);
+      await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
       if (err.response?.status === 401) {
-        setErrorMessage('Invalid username/email or password.');
+        setErrorMessage('Invalid email or password.');
       } else if (err.response?.status === 409) {
         setErrorMessage('Account exists with a different method. Try resetting your password.');
       } else {
-        setErrorMessage(err.response?.data?.detail || 'Login failed. Please check server connections.');
+        setErrorMessage(err.response?.data?.detail || 'Login failed. Please check server connection.');
       }
     } finally {
       setIsLoading(false);
@@ -38,8 +38,8 @@ export default function Login() {
     <div className="min-h-screen bg-[var(--color-bg-base)] flex items-center justify-center relative overflow-hidden" id="login-page">
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[var(--color-primary)]/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[var(--color-accent)]/20 rounded-full blur-[100px]" />
-      
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -61,15 +61,15 @@ export default function Login() {
           )}
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5" htmlFor="email">Username or Email</label>
-              <input 
-                id="email" 
-                type="text" 
+              <label className="block text-sm font-medium text-gray-300 mb-1.5" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-white transition-all" 
-                placeholder="username or you@example.com"
+                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-white transition-all"
+                placeholder="you@example.com"
               />
             </div>
             <div>
@@ -77,17 +77,17 @@ export default function Login() {
                 <label className="block text-sm font-medium text-gray-300" htmlFor="password">Password</label>
                 <a href="#" className="text-xs text-[var(--color-primary-light)] hover:underline">Forgot password?</a>
               </div>
-              <input 
-                id="password" 
-                type="password" 
+              <input
+                id="password"
+                type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-white transition-all" 
+                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-white transition-all"
                 placeholder="••••••••"
               />
             </div>
-            
+
             <Button type="submit" className="w-full py-3 mt-4" isLoading={isLoading} id="btn-login-submit">
               Sign In
             </Button>

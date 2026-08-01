@@ -167,9 +167,8 @@ class PortfolioService:
                                 defaults={
                                     'name': symbol,
                                     'asset_type': 'STOCK',
-                                    'quantity': qty,
-                                    'avg_buy_price': avg_price,
-                                    'current_price': ltp
+                                    'qty': qty,
+                                    'avg_price': avg_price,
                                 }
                             )
                             synced_count += 1

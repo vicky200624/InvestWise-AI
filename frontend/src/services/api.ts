@@ -207,8 +207,9 @@ export interface BrokerCredentialsInfo {
 
 export const authApi = {
   login: async (usernameOrEmail: string, password: string) => {
+    // Backend CustomUser uses email as USERNAME_FIELD, so JWT expects "email"
     const response = await api.post('/api/v1/auth/login/', {
-      username: usernameOrEmail,
+      email: usernameOrEmail,
       password,
     });
     if (response.data?.access) {
@@ -256,7 +257,8 @@ export const authApi = {
     return [response.data]; // Wrap in array as expected by frontend
   },
   linkBroker: async (data: any): Promise<any> => {
-    const response = await api.post('/api/v1/auth/broker/', data);
+    // Backend BrokerCredentialsView is a RetrieveUpdateAPIView (GET/PUT/PATCH)
+    const response = await api.put('/api/v1/auth/broker/', data);
     return response.data;
   },
   getPortfolioSummaryAuth: async () => {
