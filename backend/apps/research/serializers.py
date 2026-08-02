@@ -1,7 +1,10 @@
 from rest_framework import serializers
-from .models import StockAnalysis, AgentTask, RAGDocument, InvestmentFeedback, TrainedModel, MacroIndicator
+from core.validators import ValidatedSymbolField
+from .models import StockAnalysis, AgentTask, InvestmentFeedback, TrainedModel, MacroIndicator
 
 class StockAnalysisSerializer(serializers.ModelSerializer):
+    stock_symbol = ValidatedSymbolField()
+    
     class Meta:
         model = StockAnalysis
         fields = '__all__'

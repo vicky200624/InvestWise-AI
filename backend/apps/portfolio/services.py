@@ -1,9 +1,13 @@
 from django.contrib.auth import get_user_model
 User = get_user_model()
 from django.conf import settings
+from django.core.cache import cache
 from .models import AssetHolding
 from apps.accounts.models import UserPortfolio
 import datetime
+import logging
+
+logger = logging.getLogger('investwise.services.portfolio')
 
 class PortfolioService:
     @staticmethod
@@ -33,17 +37,29 @@ class PortfolioService:
     @staticmethod
     def get_performance(user: User) -> dict:
         from .repositories import PortfolioRepository
+        cache_key = f'portfolio_performance:{user.id}'
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
         portfolio = PortfolioRepository.get_or_create_portfolio(user)
-        return {
+        result = {
             'total_invested': float(portfolio.total_invested),
             'current_value': float(portfolio.current_value),
             'pnl': float(portfolio.current_value - portfolio.total_invested),
             'xirr': float(portfolio.xirr)
         }
+        cache.set(cache_key, result, timeout=300)  # Cache for 5 minutes
+        return result
 
     @staticmethod
     def get_dashboard_summary(user: User) -> dict:
         from .repositories import PortfolioRepository
+        cache_key = f'dashboard_summary:{user.id}'
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
         portfolio = PortfolioRepository.get_or_create_portfolio(user)
         holdings = PortfolioRepository.get_asset_holdings_by_user(user)
         
@@ -121,7 +137,7 @@ class PortfolioService:
                 'value': round(step_val, 2)
             })
 
-        return {
+        result = {
             'total_portfolio_value': round(total_current, 2),
             'current_value': round(total_current, 2),
             'total_invested': round(total_invested, 2),
@@ -136,6 +152,10 @@ class PortfolioService:
             'last_synced': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'xirr': float(portfolio.xirr) if portfolio.xirr else 14.2
         }
+        
+        # Cache dashboard summary for 5 minutes
+        cache.set(cache_key, result, timeout=300)
+        return result
 
     @staticmethod
     def sync_broker_holdings(user: User) -> dict:
@@ -149,18 +169,34 @@ class PortfolioService:
             try:
                 import pyotp
                 from SmartApi import SmartConnect
+                
+                # Validate credentials exist
+                if not creds.api_key or not creds.client_id or not creds.pin or not creds.totp_secret:
+                    return {'status': 'error', 'message': 'Incomplete broker credentials. Please update your API key, client ID, PIN, and TOTP secret.'}
+                
                 smartApi = SmartConnect(api_key=creds.api_key)
                 totp = pyotp.TOTP(creds.totp_secret).now()
                 login_res = smartApi.generateSession(creds.client_id, creds.pin, totp)
+                
                 if login_res and login_res.get('status'):
                     holdings_res = smartApi.holding()
                     items = holdings_res.get('data', []) if holdings_res else []
+                    
+                    # Validate and sanitize holdings data
                     for h in items:
                         symbol = h.get('tradingsymbol') or h.get('symbol', 'UNKNOWN')
-                        qty = float(h.get('quantity', 0))
-                        avg_price = float(h.get('averageprice', 0.0))
-                        ltp = float(h.get('ltp', avg_price))
-                        if symbol and qty > 0:
+                        try:
+                            qty = float(h.get('quantity', 0))
+                            avg_price = float(h.get('averageprice', 0.0))
+                            ltp = float(h.get('ltp', avg_price))
+                            
+                            # Skip invalid entries
+                            if not symbol or qty <= 0 or avg_price < 0:
+                                continue
+                            
+                            # Sanitize symbol
+                            symbol = symbol.strip().upper()
+                            
                             PortfolioRepository.update_or_create_asset_holding(
                                 user=user,
                                 symbol=symbol,
@@ -172,10 +208,17 @@ class PortfolioService:
                                 }
                             )
                             synced_count += 1
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"Skipping invalid holding entry: {h}. Error: {e}")
+                            continue
+                    
                     return {'status': 'success', 'broker': 'ANGELONE', 'synced_count': synced_count}
                 else:
                     return {'status': 'error', 'message': login_res.get('message', 'Angel One login failed')}
+            except ImportError:
+                return {'status': 'error', 'message': 'SmartAPI library not installed. Please install smartapi-python.'}
             except Exception as e:
+                logger.error(f"Angel One sync exception: {e}")
                 return {'status': 'error', 'message': f'Angel One sync exception: {str(e)}'}
         elif creds.broker_name == 'ZERODHA':
             return {'status': 'success', 'broker': 'ZERODHA', 'synced_count': 0, 'message': 'Zerodha sync simulated.'}

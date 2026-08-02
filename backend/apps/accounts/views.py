@@ -1,6 +1,7 @@
 from rest_framework import generics, views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 
 from .serializers import (
@@ -16,10 +17,19 @@ from .services import AccountsService
 User = get_user_model()
 
 
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """
+    JWT login endpoint with rate limiting to prevent brute-force attacks.
+    """
+    permission_classes = (AllowAny,)
+    throttle_scope = 'auth'
+
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = UserRegistrationSerializer
+    throttle_scope = 'auth'
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):
@@ -58,6 +68,9 @@ class UserPortfolioView(generics.RetrieveUpdateAPIView):
 
 
 class RegisterOrLinkView(views.APIView):
+    permission_classes = (AllowAny,)
+    throttle_scope = 'auth'
+
     def post(self, request):
         email = request.data.get('email')
 

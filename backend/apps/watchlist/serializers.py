@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from core.validators import ValidatedSymbolField
 from .models import Watchlist, WatchlistItem, PriceAlert
 
 class WatchlistItemSerializer(serializers.ModelSerializer):
@@ -7,6 +8,7 @@ class WatchlistItemSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    symbol = ValidatedSymbolField()
 
     class Meta:
         model = WatchlistItem

@@ -1,3 +1,3 @@
 """
-Test suite for InvestWise AI 3.0 platform.
+InvestWise AI 3.0 Test Suite
 """

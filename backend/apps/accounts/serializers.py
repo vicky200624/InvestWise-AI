@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 from rest_framework import serializers
 from django.conf import settings
+from core.validators import ValidatedEmailField, ValidatedPasswordField, ValidatedSymbolField
 from .models import UserPortfolio, BrokerCredentials
 
 class UserSerializer(serializers.ModelSerializer):
@@ -11,14 +12,19 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    email = ValidatedEmailField()
+    password = ValidatedPasswordField()
 
     class Meta:
         model = User
         fields = ('username', 'email', 'password', 'first_name', 'last_name')
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
+        # Extract password for create_user
+        password = validated_data.pop('password')
+        # Set username to email since USERNAME_FIELD = 'email'
+        validated_data['username'] = validated_data['email']
+        user = User.objects.create_user(password=password, **validated_data)
         return user
 
 class UserPortfolioSerializer(serializers.ModelSerializer):

@@ -1,7 +1,6 @@
 """
 Unit tests for InvestWise AI 3.0 Django REST Framework backend API.
 """
-
 import os
 import sys
 import unittest
@@ -13,13 +12,16 @@ import django
 django.setup()
 
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from rest_framework.test import APIClient
 from rest_framework import status
 
 class TestBackendAPI(TestCase):
     def setUp(self):
         self.client = APIClient()
+        # Add X-API-Version header to all requests (required by APIVersioningMiddleware)
+        self.client.credentials(HTTP_X_API_VERSION='1.0')
         self.user = User.objects.create_user(username='testinvestor', email='test@investwise.ai', password='SecurePassword123!')
         self.client.force_authenticate(user=self.user)
 
@@ -29,6 +31,7 @@ class TestBackendAPI(TestCase):
 
     def test_portfolio_unauthenticated_rejected(self):
         client_unauth = APIClient()
+        client_unauth.credentials(HTTP_X_API_VERSION='1.0')
         response = client_unauth.get('/api/v1/portfolio/holdings/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -39,6 +42,7 @@ class TestBackendAPI(TestCase):
 
     def test_auth_register_and_jwt_login(self):
         client_unauth = APIClient()
+        client_unauth.credentials(HTTP_X_API_VERSION='1.0')
         reg_res = client_unauth.post('/api/v1/auth/register/', {
             'username': 'newuser',
             'email': 'newuser@investwise.ai',
@@ -46,10 +50,11 @@ class TestBackendAPI(TestCase):
             'password_confirm': 'NewSecurePassword456!'
         }, format='json')
         self.assertEqual(reg_res.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(reg_res.data['username'], 'newuser')
+        # Username is set to email since USERNAME_FIELD = 'email'
+        self.assertEqual(reg_res.data['username'], 'newuser@investwise.ai')
 
         login_res = client_unauth.post('/api/v1/auth/login/', {
-            'username': 'newuser',
+            'email': 'newuser@investwise.ai',
             'password': 'NewSecurePassword456!'
         }, format='json')
         self.assertEqual(login_res.status_code, status.HTTP_200_OK)
@@ -57,10 +62,11 @@ class TestBackendAPI(TestCase):
         self.assertIn('refresh', login_res.data)
 
         access_token = login_res.data['access']
-        client_unauth.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        client_unauth.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}', HTTP_X_API_VERSION='1.0')
         profile_res = client_unauth.get('/api/v1/auth/profile/')
         self.assertEqual(profile_res.status_code, status.HTTP_200_OK)
-        self.assertEqual(profile_res.data['username'], 'newuser')
+        # Username is set to email since USERNAME_FIELD = 'email'
+        self.assertEqual(profile_res.data['username'], 'newuser@investwise.ai')
 
         refresh_res = client_unauth.post('/api/v1/auth/refresh/', {
             'refresh': login_res.data['refresh']
@@ -127,3 +133,6 @@ class TestBackendAPI(TestCase):
         self.assertEqual(res_ok.data['status'], 'success')
         self.assertEqual(res_ok.data['broker'], 'ZERODHA')
 
+
+if __name__ == "__main__":
+    unittest.main()

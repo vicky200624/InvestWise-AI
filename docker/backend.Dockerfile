@@ -1,33 +1,39 @@
-# Stage 1: Build dependencies
-FROM python:3.12-slim AS builder
+# InvestWise AI 3.0 - Backend Dockerfile
+FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+
+# Set work directory
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
-
-# Stage 2: Runtime image
-FROM python:3.12-slim
-
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/wheels /wheels
-COPY --from=builder /app/requirements.txt .
-RUN pip install --no-cache /wheels/*
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-COPY . .
+# Copy project files
+COPY backend/ ./backend/
+COPY AI/ ./AI/
+COPY manage.py .
 
-ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=config.settings.production
+# Create directories for logs, static files, and AI models
+RUN mkdir -p logs staticfiles chroma_db AI/models
 
+# Collect static files
+RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
+
+# Expose port
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "config.wsgi:application"]
+# Run gunicorn
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120"]

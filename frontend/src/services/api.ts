@@ -6,6 +6,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'X-API-Version': '1.0',
   },
   timeout: 15000,
 });
@@ -32,7 +33,8 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          const res = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh/`, {
+          // Use the shared api instance to ensure X-API-Version header is included
+          const res = await api.post('/api/v1/auth/refresh/', {
             refresh: refreshToken,
           });
           const newAccessToken = res.data.access;

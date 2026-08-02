@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 import logging
 from django.conf import settings
+from django.core.cache import cache
 from .models import StockAnalysis, AgentTask, InvestmentFeedback
 from .repositories import ResearchRepository
 
@@ -22,6 +23,21 @@ class ResearchService:
         """
         Create AgentTask and trigger asynchronous or synchronous AI analysis.
         """
+        # Input validation
+        if not stock_symbol or not stock_symbol.strip():
+            return {
+                'task_id': None,
+                'status': 'FAILED',
+                'error': 'Stock symbol is required.'
+            }
+        
+        stock_symbol = stock_symbol.strip().upper()
+        
+        # Validate time horizon
+        valid_horizons = ['SHORT', 'LONG', 'MEDIUM']
+        if time_horizon not in valid_horizons:
+            time_horizon = 'LONG'
+        
         task = ResearchRepository.create_agent_task(
             user=user,
             task_type='STOCK_ANALYSIS',
@@ -65,7 +81,7 @@ class ResearchService:
                 f"Fundamental health score is {analysis.fundamental_score:.0f}/100 and quantitative signals indicate favorable risk-adjusted returns."
             )
 
-            return {
+            result = {
                 'task_id': str(task.id),
                 'status': task.status,
                 'analysis_id': analysis.id,
@@ -77,6 +93,12 @@ class ResearchService:
                 'narrative': narrative,
                 'top_factors': analysis.top_factors
             }
+            
+            # Cache analysis result for 1 hour
+            cache_key = f'analysis:{user.id}:{stock_symbol}:{time_horizon}'
+            cache.set(cache_key, result, timeout=3600)
+            
+            return result
         except Exception as e:
             logger.error(f"Error executing analysis for {stock_symbol}: {e}")
             task.status = 'FAILED'

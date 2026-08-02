@@ -15,8 +15,28 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 
+def env_bool(name: str, default: bool = False) -> bool:
+    """Parse environment variable as boolean."""
+    return os.environ.get(name, str(default)).lower() in ('true', '1', 'yes', 'on')
+
+
+def env_int(name: str, default: int) -> int:
+    """Parse environment variable as integer with fallback."""
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+ENV = os.environ.get('DJANGO_ENV', 'development')
+
 SECRET_KEY = os.environ.get('SECRET_KEY', os.environ.get('DJANGO_SECRET_KEY', 'default-secret-key-for-dev'))
-ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'kQn5hP0hD1vQ5e4m2S6j7u8w9x0y1z2A3B4C5D6E7F8=')
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', os.environ.get('DJANGO_ENCRYPTION_KEY', 'kQn5hP0hD1vQ5e4m2S6j7u8w9x0y1z2A3B4C5D6E7F8='))
+
+if ENV == 'production' and SECRET_KEY == 'default-secret-key-for-dev':
+    raise RuntimeError('In production, SECRET_KEY must be set via environment variable!')
+if ENV == 'production' and ENCRYPTION_KEY == 'kQn5hP0hD1vQ5e4m2S6j7u8w9x0y1z2A3B4C5D6E7F8=':
+    raise RuntimeError('In production, ENCRYPTION_KEY must be set via environment variable!')
 
 
 INSTALLED_APPS = [
@@ -55,7 +75,16 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.SecurityHeadersMiddleware',
+    'core.middleware.RequestLoggingMiddleware',
+    'core.middleware.IPRateLimitMiddleware',
+    'core.middleware.APIVersioningMiddleware',
 ]
+
+# Security headers middleware for production hardening
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = env_bool('SECURE_BROWSER_XSS_FILTER', True)
+X_FRAME_OPTIONS = os.environ.get('X_FRAME_OPTIONS', 'DENY')
 
 ROOT_URLCONF = 'config.urls'
 
@@ -87,6 +116,19 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.environ.get('THROTTLE_ANON_RATE', '60/min'),
+        'user': os.environ.get('THROTTLE_USER_RATE', '600/min'),
+        'auth': os.environ.get('THROTTLE_AUTH_RATE', '10/min'),
+        'ai': os.environ.get('THROTTLE_AI_RATE', '20/min'),
+    },
+    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -163,15 +205,25 @@ GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', GEMINI_API_KEY)
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY', '')
 DEEPGRAM_API_KEY = os.environ.get('DEEPGRAM_API_KEY', '')
 
-# Logging configuration
+# Logging configuration with rotating file handler
 os.makedirs(str(ROOT_DIR / 'logs'), exist_ok=True)
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO' if ENV == 'development' else 'WARNING')
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
         },
     },
     'handlers': {
@@ -180,24 +232,66 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'file': {
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': str(ROOT_DIR / 'logs' / 'investwise.log'),
             'formatter': 'verbose',
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(ROOT_DIR / 'logs' / 'investwise_errors.log'),
+            'formatter': 'verbose',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'level': 'ERROR',
         },
     },
     'loggers': {
         'investwise': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'handlers': ['console', 'file', 'error_file'],
+            'level': LOG_LEVEL,
             'propagate': True,
         },
         'celery': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'handlers': ['console', 'file', 'error_file'],
+            'level': LOG_LEVEL,
             'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console', 'error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'error_file'],
+            'level': 'WARNING',
+            'propagate': False,
         },
     },
 }
 
 # Tells Django to use our CustomUser model instead of the default auth.User
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Django Cache Configuration (Redis via django-redis or LocMem fallback)
+USE_REDIS_CACHE = env_bool('USE_REDIS_CACHE', False)
+if USE_REDIS_CACHE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.environ.get('REDIS_URL', 'redis://localhost:6379/1'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'TIMEOUT': env_int('CACHE_TIMEOUT', 300),
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'investwise-cache',
+            'TIMEOUT': env_int('CACHE_TIMEOUT', 300),
+        }
+    }

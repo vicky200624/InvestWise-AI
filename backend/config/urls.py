@@ -1,13 +1,16 @@
 from django.contrib import admin
 from django.urls import path, include
-from core.health import HealthCheckView
+from core.health import health_check, readiness_check, liveness_check
 from apps.portfolio.views import DashboardSummaryView, PortfolioOptimizeView
 from apps.research.views import AnalyzeStockView
 from apps.chat.views import ChatMessageView, VoiceChatView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/health/', HealthCheckView.as_view(), name='health-check'),
+    # Health check endpoints
+    path('api/v1/health/', health_check, name='health_check'),
+    path('api/v1/health/ready/', readiness_check, name='readiness_check'),
+    path('api/v1/health/alive/', liveness_check, name='liveness_check'),
     path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/portfolio/', include('apps.portfolio.urls')),
     path('api/v1/research/', include('apps.research.urls')),
