@@ -1,0 +1,660 @@
+# =============================================================================
+# InvestWise AI - Production Docker Compose
+# Full production stack with all services, monitoring, and health checks
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # Database Layer
+  # ===========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: investwise_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-investwise_db}
+      POSTGRES_USER: ${DB_USER:-investwise_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database_backup:/backups
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-investwise_user} -d ${DB_NAME:-investwise_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: investwise_redis_prod
+    restart: always
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --timeout 300
+      --tcp-keepalive 60
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: investwise_chromadb_prod
+    restart: always
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+      - CHROMA_SERVER_AUTHN_CREDENTIALS=${CHROMA_PASSWORD}
+      - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.basic_authn.BasicAuthenticationServerProvider
+    volumes:
+      - chromadb_data:/chroma/chroma
+    ports:
+      - "8002:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Application Layer
+  # ===========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    image: investwise/backend:latest
+    container_name: investwise_backend_prod
+    restart: always
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application
+             --bind 0.0.0.0:8000
+             --workers 4
+             --worker-class uvicorn.workers.UvicornWorker
+             --timeout 120
+             --keep-alive 5
+             --max-requests 1000
+             --max-requests-jitter 100
+             --access-logfile -
+             --error-logfile -"
+    volumes:
+      - staticfiles:/app/staticfiles
+      - media_files:/app/media
+      - ./logs:/app/logs
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+    expose:
+      - "8000"
+    environment:
+      - DJANGO_ENV=production
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_PASSWORD=${CHROMA_PASSWORD}
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Additional backend instance for horizontal scaling
+  backend2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    image: investwise/backend:latest
+    container_name: investwise_backend2_prod
+    restart: always
+    command: >
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 4
+      --worker-class uvicorn.workers.UvicornWorker
+      --timeout 120
+      --keep-alive 5
+      --max-requests 1000
+      --max-requests-jitter 100
+      --access-logfile -
+      --error-logfile -
+    volumes:
+      - staticfiles:/app/staticfiles
+      - media_files:/app/media
+      - ./logs:/app/logs
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+    expose:
+      - "8000"
+    environment:
+      - DJANGO_ENV=production
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_PASSWORD=${CHROMA_PASSWORD}
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ===========================================================================
+  # AI Service
+  # ===========================================================================
+  ai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai
+    image: investwise/ai:latest
+    container_name: investwise_ai_prod
+    restart: always
+    volumes:
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+      - ./logs:/app/logs
+    expose:
+      - "8001"
+    environment:
+      - DJANGO_ENV=production
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_PASSWORD=${CHROMA_PASSWORD}
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+      - MODEL_VERSION=${MODEL_VERSION:-v2.1.0}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ===========================================================================
+  # Celery Workers (Background Jobs)
+  # ===========================================================================
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    image: investwise/celery:latest
+    container_name: investwise_celery_worker_prod
+    restart: always
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --concurrency=4
+      --max-tasks-per-child=1000
+      --time-limit=300
+      --soft-time-limit=240
+      -Q default,ai,training,data
+    volumes:
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+      - ./logs:/app/logs
+    environment:
+      - DJANGO_ENV=production
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_PASSWORD=${CHROMA_PASSWORD}
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Second celery worker for horizontal scaling
+  celery-worker2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    image: investwise/celery:latest
+    container_name: investwise_celery_worker2_prod
+    restart: always
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --concurrency=4
+      --max-tasks-per-child=1000
+      --time-limit=300
+      --soft-time-limit=240
+      -Q default,ai,training,data
+    volumes:
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+      - ./logs:/app/logs
+    environment:
+      - DJANGO_ENV=production
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_PASSWORD=${CHROMA_PASSWORD}
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    image: investwise/celery:latest
+    container_name: investwise_celery_beat_prod
+    restart: always
+    command: >
+      celery -A config beat
+      --loglevel=info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      - DJANGO_ENV=production
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ===========================================================================
+  # Frontend
+  # ===========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    image: investwise/frontend:latest
+    container_name: investwise_frontend_prod
+    restart: always
+    expose:
+      - "80"
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # NGINX Reverse Proxy
+  # ===========================================================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: investwise_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - staticfiles:/var/www/static:ro
+      - media_files:/var/www/media:ro
+      - ./frontend/dist:/var/www/html:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+      - nginx_logs:/var/log/nginx
+      - ./certbot:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - backend2
+      - ai
+      - frontend
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ===========================================================================
+  # Monitoring Stack
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: investwise_prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    expose:
+      - "9090"
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: investwise_grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=investwise.ai
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=${SMTP_HOST:-}
+      - GF_SMTP_USER=${SMTP_USER:-}
+      - GF_SMTP_PASSWORD=${SMTP_PASSWORD:-}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    expose:
+      - "3000"
+    depends_on:
+      - prometheus
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: investwise_loki
+    restart: always
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: investwise_promtail
+    restart: always
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - ./logs:/logs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: investwise_node_exporter
+    restart: always
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - "9100"
+    networks:
+      - investwise_network
+
+  # ===========================================================================
+  # Flower - Celery Monitoring
+  # ===========================================================================
+  flower:
+    image: mher/flower:latest
+    container_name: investwise_flower
+    restart: always
+    command: >
+      celery --broker=redis://:${REDIS_PASSWORD}@redis:6379/0 flower
+      --port=5555
+      --url-prefix=flower
+    expose:
+      - "5555"
+    depends_on:
+      - redis
+    networks:
+      - investwise_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+  redis_data:
+  chromadb_data:
+  staticfiles:
+  media_files:
+  nginx_cache:
+  nginx_logs:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  investwise_network:
+    driver: bridge

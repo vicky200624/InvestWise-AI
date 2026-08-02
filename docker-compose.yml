@@ -1,19 +1,27 @@
+# =============================================================================
+# InvestWise AI - Development Docker Compose
+# Local development environment with all services on Docker network
+# =============================================================================
+
 version: '3.8'
 
 services:
+  # ===========================================================================
+  # Database Layer
+  # ===========================================================================
   postgres:
     image: postgres:15-alpine
     container_name: investwise_postgres
     environment:
-      POSTGRES_DB: investwise_db
-      POSTGRES_USER: investwise_user
+      POSTGRES_DB: ${DB_NAME:-investwise_db}
+      POSTGRES_USER: ${DB_USER:-investwise_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_here}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U investwise_user -d investwise_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-investwise_user} -d ${DB_NAME:-investwise_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,33 +37,62 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password_here}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - investwise_network
 
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: investwise_chromadb
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chromadb_data:/chroma/chroma
+    ports:
+      - "8002:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - investwise_network
+
+  # ===========================================================================
+  # Application Layer
+  # ===========================================================================
   backend:
     build:
       context: .
-      dockerfile: docker/backend.Dockerfile
+      dockerfile: docker/Dockerfile.backend
     container_name: investwise_backend
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application
+             --bind 0.0.0.0:8000
+             --workers 4
+             --timeout 120
+             --reload"
     volumes:
       - ./backend:/app/backend
       - ./AI:/app/AI
-      - ./staticfiles:/app/staticfiles
+      - staticfiles:/app/staticfiles
       - ./logs:/app/logs
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
     ports:
       - "8000:8000"
     environment:
-      - DJANGO_ENV=production
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY}
+      - DJANGO_ENV=development
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY:-dev-encryption-key-change-in-production}
       - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=investwise_db
-      - DB_USER=investwise_user
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
       - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -63,10 +100,111 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
       - FMP_API_KEY=${FMP_API_KEY}
       - FINNHUB_API_KEY=${FINNHUB_API_KEY}
       - FRED_API_KEY=${FRED_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    restart: unless-stopped
+
+  # ===========================================================================
+  # AI Service
+  # ===========================================================================
+  ai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai
+    container_name: investwise_ai
+    volumes:
+      - ./AI:/app/AI
+      - ./backend:/app/backend
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+      - ./logs:/app/logs
+    ports:
+      - "8001:8001"
+    environment:
+      - DJANGO_ENV=development
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY:-dev-encryption-key-change-in-production}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
+      - MODEL_VERSION=${MODEL_VERSION:-v2.1.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    networks:
+      - investwise_network
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Celery Workers
+  # ===========================================================================
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.celery
+    container_name: investwise_celery_worker
+    command: >
+      celery -A config worker
+      --loglevel=debug
+      --concurrency=2
+      -Q default,ai,training,data
+    volumes:
+      - ./backend:/app/backend
+      - ./AI:/app/AI
+      - ./ai_models:/app/ai_models
+      - ./datasets:/app/datasets
+      - ./logs:/app/logs
+    environment:
+      - DJANGO_ENV=development
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY:-dev-encryption-key-change-in-production}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - FMP_API_KEY=${FMP_API_KEY}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SEC_EDGAR_USER_AGENT=${SEC_EDGAR_USER_AGENT}
     depends_on:
       postgres:
@@ -77,74 +215,48 @@ services:
       - investwise_network
     restart: unless-stopped
 
-  celery:
-    build:
-      context: .
-      dockerfile: docker/backend.Dockerfile
-    container_name: investwise_celery
-    command: celery -A config worker --loglevel=info --concurrency=4
-    volumes:
-      - ./backend:/app/backend
-      - ./AI:/app/AI
-      - ./logs:/app/logs
-    environment:
-      - DJANGO_ENV=production
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=investwise_db
-      - DB_USER=investwise_user
-      - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
-      - FMP_API_KEY=${FMP_API_KEY}
-      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
-      - FRED_API_KEY=${FRED_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - investwise_network
-    restart: unless-stopped
-
   celery-beat:
     build:
       context: .
-      dockerfile: docker/backend.Dockerfile
+      dockerfile: docker/Dockerfile.celery
     container_name: investwise_celery_beat
-    command: celery -A config beat --loglevel=info
+    command: >
+      celery -A config beat
+      --loglevel=debug
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - ./backend:/app/backend
       - ./logs:/app/logs
     environment:
-      - DJANGO_ENV=production
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ENV=development
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      - DJANGO_ENCRYPTION_KEY=${DJANGO_ENCRYPTION_KEY:-dev-encryption-key-change-in-production}
       - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=investwise_db
-      - DB_USER=investwise_user
+      - DB_NAME=${DB_NAME:-investwise_db}
+      - DB_USER=${DB_USER:-investwise_user}
       - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
       - DB_HOST=postgres
       - DB_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password_here}@redis:6379/1
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - investwise_network
     restart: unless-stopped
 
+  # ===========================================================================
+  # Frontend
+  # ===========================================================================
   frontend:
     build:
       context: .
-      dockerfile: docker/frontend.Dockerfile
+      dockerfile: docker/Dockerfile.frontend
     container_name: investwise_frontend
-    volumes:
-      - ./frontend/dist:/usr/share/nginx/html
     ports:
       - "3000:80"
     depends_on:
@@ -153,28 +265,40 @@ services:
       - investwise_network
     restart: unless-stopped
 
+  # ===========================================================================
+  # NGINX Reverse Proxy
+  # ===========================================================================
   nginx:
-    image: nginx:alpine
+    image: nginx:1.25-alpine
     container_name: investwise_nginx
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./staticfiles:/var/www/static
-      - ./frontend/dist:/var/www/html
-      - ./ssl:/etc/nginx/ssl:ro  # Mount SSL certificates here
+      - staticfiles:/var/www/static:ro
+      - ./frontend/dist:/var/www/html:ro
+      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - backend
+      - ai
       - frontend
     networks:
       - investwise_network
     restart: unless-stopped
 
+# =============================================================================
+# Volumes
+# =============================================================================
 volumes:
   postgres_data:
   redis_data:
+  chromadb_data:
+  staticfiles:
 
+# =============================================================================
+# Networks
+# =============================================================================
 networks:
   investwise_network:
     driver: bridge

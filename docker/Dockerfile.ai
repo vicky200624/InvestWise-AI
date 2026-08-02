@@ -1,0 +1,88 @@
+# =============================================================================
+# InvestWise AI - AI Service Dockerfile (Production)
+# Python AI inference service with FastAPI
+# Multi-stage build for optimized image size
+# =============================================================================
+
+# ---------- Builder Stage ----------
+FROM python:3.11-slim AS builder
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies for building Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    libffi-dev \
+    libssl-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create and activate virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements first for better layer caching
+COPY requirements.txt /tmp/requirements.txt
+COPY AI/requirements.txt /tmp/ai-requirements.txt
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install -r /tmp/requirements.txt && \
+    pip install -r /tmp/ai-requirements.txt
+
+# ---------- Final Stage ----------
+FROM python:3.11-slim AS final
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_ENV=production \
+    PATH="/opt/venv/bin:$PATH"
+
+# Install runtime system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    libffi8 \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Create non-root user for security
+RUN groupadd -r investwise && useradd -r -g investwise investwise
+
+# Set working directory
+WORKDIR /app
+
+# Copy AI application code
+COPY --chown=investwise:investwise AI/ /app/AI/
+COPY --chown=investwise:investwise backend/ /app/backend/
+COPY --chown=investwise:investwise manage.py /app/manage.py
+
+# Create directories for models and logs
+RUN mkdir -p /app/ai_models /app/logs /app/datasets && \
+    chown -R investwise:investwise /app
+
+# Switch to non-root user
+USER investwise
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Default command - AI inference service
+CMD ["uvicorn", "AI.services.rag_engine:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8001", \
+     "--workers", "2", \
+     "--timeout-keep-alive", "5"]
