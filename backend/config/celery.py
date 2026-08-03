@@ -14,7 +14,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.config.settings.develop
 
 app = Celery("investwise_ai")
 app.config_from_object("django.conf:settings", namespace="CELERY")
-app.autodiscover_tasks(["backend.tasks", "apps.research", "investwise"])
+
+# Automatically discover tasks across ALL installed Django apps
+app.autodiscover_tasks()
 
 # Celery Beat Periodic Tasks Schedule
 app.conf.beat_schedule = {

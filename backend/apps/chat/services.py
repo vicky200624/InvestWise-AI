@@ -1,9 +1,12 @@
 from django.contrib.auth import get_user_model
 User = get_user_model()
 import os
+import logging
 from django.conf import settings
 from .models import ChatSession, ChatMessage
 from .repositories import ChatRepository
+
+logger = logging.getLogger('investwise.chat')
 
 class ChatService:
     @staticmethod

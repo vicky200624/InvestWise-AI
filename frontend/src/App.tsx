@@ -10,6 +10,7 @@ import Watchlist from './pages/Watchlist';
 import Chat from './pages/Chat';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ConnectBroker from './pages/ConnectBroker'; // 1. Added the import here
 import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
@@ -37,6 +38,10 @@ function App() {
                 <Route path="research" element={<Research />} />
                 <Route path="watchlist" element={<Watchlist />} />
                 <Route path="chat" element={<Chat />} />
+                
+                {/* 2. Added the new route here */}
+                <Route path="connect-broker" element={<ConnectBroker />} /> 
+                
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Route>
             </Routes>

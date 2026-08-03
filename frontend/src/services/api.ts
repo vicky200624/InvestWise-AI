@@ -23,34 +23,81 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Queue mechanism for handling concurrent requests during token refresh
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Response interceptor for error handling and automatic JWT refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      
+      if (isRefreshing) {
+        // If a refresh is already in progress, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return api(originalRequest);
+        }).catch(err => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       const refreshToken = localStorage.getItem('refresh_token');
+      
       if (refreshToken) {
         try {
-          // Use the shared api instance to ensure X-API-Version header is included
-          const res = await api.post('/api/v1/auth/refresh/', {
+          // Use standard axios to avoid triggering interceptors recursively
+          const res = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh/`, {
             refresh: refreshToken,
           });
+          
           const newAccessToken = res.data.access;
           localStorage.setItem('access_token', newAccessToken);
           if (res.data.refresh) {
             localStorage.setItem('refresh_token', res.data.refresh);
           }
+          
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           }
+
+          // Process all queued requests with the new token
+          processQueue(null, newAccessToken);
+          
           return api(originalRequest);
         } catch (refreshError) {
+          // If refresh fails, clear auth state and reject queued requests
+          processQueue(refreshError, null);
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+          window.location.href = '/login'; // Optional: Redirect to login
           return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
+      } else {
+        // No refresh token available, clear whatever is left
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
       }
     }
     return Promise.reject(error);
@@ -115,12 +162,10 @@ export const portfolioApi = {
     return response.data;
   },
   syncBroker: async () => {
-    const response = await api.post('/api/portfolio/sync-broker/');
+    const response = await api.post('/api/v1/portfolio/sync-broker/');
     return response.data;
   },
 };
-
-
 
 export const researchApi = {
   runAnalysis: async (symbol: string, timeHorizon: string = 'LONG'): Promise<StockAnalysisResult> => {
@@ -168,25 +213,53 @@ export const chatApi = {
 export const watchlistApi = {
   getWatchlist: async () => {
     const response = await api.get('/api/watchlist/');
-    return response.data;
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.results || [];
   },
+  
   getItems: async () => {
     const response = await api.get('/api/watchlist/items/');
-    return response.data;
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.results || [];
   },
-  addItem: async (symbol: string, watchlistId?: number) => {
+  
+  addItem: async (symbol: string, targetPrice?: number) => {
+    // 1. Fetch the user's actual watchlists
+    const wListResponse = await api.get('/api/watchlist/');
+    const watchlists = Array.isArray(wListResponse.data) 
+      ? wListResponse.data 
+      : (wListResponse.data?.results || []);
+    
+    let validWatchlistId;
+    
+    // 2. If the user doesn't have a watchlist yet, create one on the fly
+    if (watchlists.length === 0) {
+      const newWl = await api.post('/api/watchlist/', { name: 'Main Watchlist' });
+      validWatchlistId = newWl.data.id;
+    } else {
+      // Otherwise, use the ID of their first watchlist
+      validWatchlistId = watchlists[0].id;
+    }
+
+    // 3. Post the new item using the verified valid Watchlist ID
     const response = await api.post('/api/watchlist/items/', {
       symbol: symbol.toUpperCase(),
-      watchlist: watchlistId,
+      target_price: targetPrice || 0,
+      watchlist: validWatchlistId 
     });
+    
     return response.data;
   },
+  
   removeItem: async (id: number) => {
     const response = await api.delete(`/api/watchlist/items/${id}/`);
     return response.data;
   },
 };
-
 
 export interface UserProfile {
   id: number;
@@ -268,6 +341,5 @@ export const authApi = {
     return response.data;
   },
 };
-
 
 export default api;

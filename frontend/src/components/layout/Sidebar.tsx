@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PieChart, Search, Eye, MessageSquare, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, PieChart, Search, Eye, MessageSquare, Settings, LogOut, Link2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,6 +9,7 @@ const navItems = [
   { path: '/research', icon: Search, label: 'Research' },
   { path: '/watchlist', icon: Eye, label: 'Watchlist' },
   { path: '/chat', icon: MessageSquare, label: 'AI Chat' },
+  { path: '/connect-broker', icon: Link2, label: 'Connect Broker' },
 ];
 
 export default function Sidebar() {
@@ -37,7 +38,7 @@ export default function Sidebar() {
           <NavLink
             key={path}
             to={path}
-            id={`nav-${label.toLowerCase()}`}
+            id={`nav-${label.toLowerCase().replace(' ', '-')}`}
             className={({ isActive }) =>
               `flex items-center px-4 py-3 rounded-xl transition-all duration-200 group ${
                 isActive

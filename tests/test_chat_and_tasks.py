@@ -11,19 +11,23 @@ import django
 django.setup()
 
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 from apps.chat.models import ChatSession, ChatMessage
 from tasks.schedulers import retrain_candidate_models
 
+User = get_user_model()
+
 
 class TestChatAndTasks(TestCase):
     def setUp(self):
         self.client = APIClient()
+        # Add X-API-Version header to all requests (required by APIVersioningMiddleware)
+        self.client.credentials(HTTP_X_API_VERSION='1.0')
         self.user = User.objects.create_user(
-            username='chatuser', 
-            email='chat@investwise.ai', 
+            email='chat@investwise.ai',
+            username='chatuser',
             password='SecureChatPassword123!'
         )
         self.client.force_authenticate(user=self.user)

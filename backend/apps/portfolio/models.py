@@ -16,8 +16,8 @@ class AssetHolding(models.Model):
     code = models.CharField(max_length=10, blank=True)
     qty = models.FloatField(default=0)
     avg_price = models.FloatField(default=0)
+    current_price = models.FloatField(default=0)  # Stores LTP from broker
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-added_at']
-

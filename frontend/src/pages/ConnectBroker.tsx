@@ -4,13 +4,14 @@ import { Button } from '../components/ui/Button';
 import { authApi } from '../services/api';
 
 export default function ConnectBroker() {
-  const [brokerName, setBrokerName] = useState('Zerodha');
-  const [accountId, setAccountId] = useState('');
+  const [brokerName, setBrokerName] = useState('ANGELONE');
+  const [clientId, setClientId] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [apiSecret, setApiSecret] = useState('');
+  const [pin, setPin] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
   const [linkedAccounts, setLinkedAccounts] = useState<any[]>([]);
   
-  // Status message state to show errors or success in the UI
+  // Status message state to show errors or success in the UI[cite: 4]
   const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -26,7 +27,7 @@ export default function ConnectBroker() {
       setLinkedAccounts(data);
     } catch (err: any) {
       console.error("Failed to load linked brokers", err);
-      // SHOW ERROR in the UI instead of failing silently in the console
+      // SHOW ERROR in the UI instead of failing silently in the console[cite: 4]
       setStatusMessage({ 
         type: 'error', 
         text: err.response?.data?.detail || 'Failed to load existing broker connections. Please refresh the page.' 
@@ -42,22 +43,26 @@ export default function ConnectBroker() {
     setStatusMessage(null);
 
     try {
+      // Send the exact field names expected by BrokerCredentialsSerializer
       await authApi.linkBroker({
         broker_name: brokerName,
-        account_id: accountId,
-        api_key_encrypted: apiKey,
-        api_secret_encrypted: apiSecret
+        client_id: clientId,
+        api_key: apiKey,
+        pin: pin,
+        totp_secret: totpSecret
       });
       
       setStatusMessage({ type: 'success', text: 'Broker account linked successfully!' });
-      setAccountId('');
-      setApiKey('');
-      setApiSecret('');
       
-      // Refresh the list after linking
+      // Clear form
+      setClientId('');
+      setApiKey('');
+      setPin('');
+      setTotpSecret('');
+      
+      // Refresh the list after linking[cite: 4]
       fetchLinkedBrokers();
     } catch (err: any) {
-      // Show specific duplicate error or fallback error
       if (err.response?.status === 409) {
         setStatusMessage({ type: 'error', text: 'This broker account is already linked to an account.' });
       } else {
@@ -94,21 +99,19 @@ export default function ConnectBroker() {
                 onChange={(e) => setBrokerName(e.target.value)}
                 className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)]"
               >
-                <option value="Zerodha">Zerodha (Kite)</option>
-                <option value="Alpaca">Alpaca Markets</option>
-                <option value="InteractiveBrokers">Interactive Brokers</option>
-                <option value="Binance">Binance</option>
+                <option value="ANGELONE">AngelOne (SmartAPI)</option>
+                <option value="ZERODHA">Zerodha (Kite)</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Account ID / Client ID</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Client ID</label>
               <input 
                 type="text" 
                 required 
-                value={accountId} 
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)]"
+                value={clientId} 
+                onChange={(e) => setClientId(e.target.value)}
+                className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)] uppercase"
                 placeholder="e.g., AB1234"
               />
             </div>
@@ -121,19 +124,35 @@ export default function ConnectBroker() {
                 value={apiKey} 
                 onChange={(e) => setApiKey(e.target.value)}
                 className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)]"
-                placeholder="Your broker API key"
+                placeholder="SmartAPI Key"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">API Secret</label>
-              <input 
-                type="password" 
-                value={apiSecret} 
-                onChange={(e) => setApiSecret(e.target.value)}
-                className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)]"
-                placeholder="••••••••••••"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Login PIN</label>
+                <input 
+                  type="password" 
+                  required
+                  value={pin} 
+                  onChange={(e) => setPin(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)]"
+                  placeholder="4-digit PIN"
+                  maxLength={4}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">TOTP Secret</label>
+                <input 
+                  type="password" 
+                  required
+                  value={totpSecret} 
+                  onChange={(e) => setTotpSecret(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[var(--color-primary)]"
+                  placeholder="Alphanumeric string"
+                />
+              </div>
             </div>
 
             <Button type="submit" className="w-full py-3 mt-2" isLoading={isLoading}>
@@ -155,7 +174,8 @@ export default function ConnectBroker() {
                 <div key={account.id} className="p-3 bg-black/20 border border-white/10 rounded-xl flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold text-white">{account.broker_name}</h3>
-                    <p className="text-xs text-gray-400">ID: {account.account_id}</p>
+                    {/* Updated to client_id to match backend */}
+                    <p className="text-xs text-gray-400">ID: {account.client_id}</p>
                   </div>
                   <span className="text-xs px-2.5 py-1 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
                     Connected

@@ -1,15 +1,18 @@
-from django.contrib.auth import get_user_model
-User = get_user_model()
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from core.validators import ValidatedEmailField, ValidatedPasswordField, ValidatedSymbolField
 from .models import UserPortfolio, BrokerCredentials
+
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name')
         read_only_fields = ('id',)
+
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     email = ValidatedEmailField()
@@ -19,6 +22,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ('username', 'email', 'password', 'first_name', 'last_name')
 
+    def validate_email(self, value):
+        """
+        Check if the email already exists to return a clean 400 error 
+        instead of a 500 database crash.
+        """
+        if User.objects.filter(email=value).exists():
+            raise ValidationError("A user with this email already exists.")
+        return value
+
     def create(self, validated_data):
         # Extract password for create_user
         password = validated_data.pop('password')
@@ -27,11 +39,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(password=password, **validated_data)
         return user
 
+
 class UserPortfolioSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPortfolio
         fields = ('id', 'total_invested', 'current_value', 'xirr', 'last_synced')
         read_only_fields = ('id', 'total_invested', 'current_value', 'xirr', 'last_synced')
+
 
 class BrokerCredentialsSerializer(serializers.ModelSerializer):
     broker_name = serializers.CharField(max_length=20, default='ANGELONE')
@@ -50,6 +64,3 @@ class BrokerCredentialsSerializer(serializers.ModelSerializer):
         if val not in valid_choices:
             raise serializers.ValidationError(f"Invalid broker name. Valid choices: {valid_choices}")
         return val
-
-
-

@@ -3,7 +3,7 @@
     "v2.1.0-candidate": {
       "version": "v2.1.0-candidate",
       "model_type": "xgboost",
-      "training_date": "2026-07-31T16:24:50.718602Z",
+      "training_date": "2026-08-02T14:50:58.932313Z",
       "dataset_version": "2026-Q3-v1",
       "hyperparameters": {
         "n_estimators": 500,

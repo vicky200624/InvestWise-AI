@@ -1,6 +1,5 @@
 from django.db import models
 from django.conf import settings
-from django.contrib.postgres.fields import ArrayField
 from apps.research.models import StockAnalysis
 
 
@@ -378,7 +377,7 @@ class Alert(models.Model):
     trigger_data = models.JSONField(default=dict, blank=True)
     
     # Delivery
-    delivery_channels = ArrayField(models.CharField(max_length=20), default=list, blank=True)
+    delivery_channels = models.JSONField(default=list, blank=True)
     delivered = models.BooleanField(default=False)
     delivered_at = models.DateTimeField(null=True, blank=True)
     read = models.BooleanField(default=False)

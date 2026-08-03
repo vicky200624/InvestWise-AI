@@ -33,22 +33,15 @@ export default function Register() {
             await register(username, email, password);
             navigate('/dashboard');
         } catch (err: any) {
-            if (err.response?.status === 400) {
-                const detail = err.response?.data;
-                if (detail?.email) {
-                    setErrorMessage(`Email: ${detail.email[0] || detail.email}`);
-                } else if (detail?.username) {
-                    setErrorMessage(`Username: ${detail.username[0] || detail.username}`);
-                } else if (detail?.password) {
-                    setErrorMessage(`Password: ${detail.password[0] || detail.password}`);
-                } else {
-                    setErrorMessage(detail?.detail || 'Registration failed. Please check your inputs.');
-                }
-            } else if (err.response?.status === 409) {
-                setErrorMessage('An account with this email already exists. Please log in.');
+            console.error("Registration error:", err);
+            
+            if (err.response && err.response.data) {
+                // Force the Django error object into a raw string so we can actually read it
+                setErrorMessage(JSON.stringify(err.response.data));
             } else {
-                setErrorMessage(err.response?.data?.detail || 'Registration failed. Please check server connection.');
+                setErrorMessage(err.message || 'Registration failed. Please check server connection.');
             }
+            
         } finally {
             setIsLoading(false);
         }

@@ -111,7 +111,7 @@ class AmountValidator:
     Validates monetary amounts.
     """
     @staticmethod
-    def validate(amount: float, min_value: float = 0.0, max_value: float = 1e9) -> float:
+    def validate(amount: float, min_value: float = 0.0, max_value: float = 999_999_999.0) -> float:
         if amount is None:
             raise ValidationError("Amount is required.")
         
@@ -192,7 +192,7 @@ class ValidatedAmountField(serializers.DecimalField):
         if 'max_value' in kwargs and isinstance(kwargs['max_value'], (int, float)):
             kwargs['max_value'] = Decimal(str(kwargs['max_value']))
         else:
-            kwargs.setdefault('max_value', Decimal('1000000000.0'))
+            kwargs.setdefault('max_value', Decimal('999999999.0'))
         
         kwargs.setdefault('max_digits', 15)
         kwargs.setdefault('decimal_places', 2)
