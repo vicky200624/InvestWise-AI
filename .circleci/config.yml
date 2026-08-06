@@ -298,6 +298,11 @@ jobs:
       - attach_workspace:
           at: .
 
+      - aws-cli/setup
+
+      - aws-ecr/login:
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
       - aws-ecr/build-and-push-image:
           account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
           repo: investwise/backend
