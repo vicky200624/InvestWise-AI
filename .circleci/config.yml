@@ -1,7 +1,7 @@
 # =============================================================================
 # InvestWise AI - CircleCI Configuration
 # Pipeline: Lint  Unit Tests  Integration Tests  AI Tests  Docker Build
-#            Security Scan  Deploy  Health Check  Notify
+#            Security Scan  Deploy  Health Check  Notify 
 # =============================================================================
 
 version: 2.1
