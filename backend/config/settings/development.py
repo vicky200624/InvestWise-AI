@@ -19,3 +19,8 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Only append the new Agentic AI app here (do not re-add ai_operations)
+INSTALLED_APPS += [
+    'apps.agentic_ai.apps.AgenticAiConfig',
+]

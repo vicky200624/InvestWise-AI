@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'apps.alerts',
     'apps.feedback',
     'apps.analytics',
+    'apps.ai_operations',
 ]
 
 MIDDLEWARE = [

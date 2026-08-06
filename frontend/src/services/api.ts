@@ -343,3 +343,31 @@ export const authApi = {
 };
 
 export default api;
+export interface AIOperationsData {
+  agent_status: Array<{ name: string; status: string; last_exec: string; latency: string; success: string; health: string }>;
+  llm_usage: {
+    today_requests: number;
+    today_tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    est_daily_cost: number;
+    est_monthly_cost: number;
+    avg_response_time: string;
+    cache_hits: string;
+    failed_requests: number;
+    retry_count: number;
+  };
+  model_info: Record<string, string | number>;
+  learning_engine: Record<string, string>;
+  background_services: Record<string, string | number>;
+  recent_activity: Array<{ time: string; type: string; desc: string; status: string }>;
+  chart_data: Array<{ date: string; tokens: number; latency: number; accuracy: number; cost: number }>;
+  system_health: Array<{ service: string; status: string }>;
+}
+
+export const aiOpsApi = {
+  getDashboard: async (): Promise<AIOperationsData> => {
+    const response = await api.get('/api/v1/ai-operations/dashboard/');
+    return response.data;
+  },
+};

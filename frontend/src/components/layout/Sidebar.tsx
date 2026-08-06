@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PieChart, Search, Eye, MessageSquare, Settings, LogOut, Link2 } from 'lucide-react';
+import { LayoutDashboard, PieChart, Search, Eye, MessageSquare, Settings, LogOut, Link2, Activity, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
@@ -10,6 +10,8 @@ const navItems = [
   { path: '/watchlist', icon: Eye, label: 'Watchlist' },
   { path: '/chat', icon: MessageSquare, label: 'AI Chat' },
   { path: '/connect-broker', icon: Link2, label: 'Connect Broker' },
+  { path: '/agentic-ai', icon: Bot, label: 'Agentic AI' },
+  { path: '/ai-operations', icon: Activity, label: 'AI Operations' },
 ];
 
 export default function Sidebar() {
