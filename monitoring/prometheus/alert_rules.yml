@@ -1,0 +1,187 @@
+# =============================================================================
+# InvestWise AI - Prometheus Alert Rules
+# =============================================================================
+
+groups:
+  - name: backend_alerts
+    rules:
+      - alert: BackendHighCPU
+        expr: rate(process_cpu_seconds_total{job="backend"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend CPU usage high"
+          description: "Backend CPU usage is above 80% for 5 minutes."
+
+      - alert: BackendHighMemory
+        expr: process_resident_memory_bytes{job="backend"} > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend memory usage high"
+          description: "Backend memory usage is above 1GB."
+
+      - alert: BackendHighErrorRate
+        expr: rate(django_http_responses_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend error rate high"
+          description: "Backend 5xx error rate is above 5% for 5 minutes."
+
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.95, rate(django_http_requests_latency_seconds_bucket[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend latency high"
+          description: "Backend p95 latency is above 200ms for 5 minutes."
+
+  - name: ai_alerts
+    rules:
+      - alert: AIHighInferenceTime
+        expr: histogram_quantile(0.95, rate(ai_inference_time_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI inference time high"
+          description: "AI inference p95 time is above 5 seconds."
+
+      - alert: AIQueueLengthHigh
+        expr: ai_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI queue length high"
+          description: "AI queue length is above 100 for 5 minutes."
+
+      - alert: AIModelAccuracyLow
+        expr: ai_model_accuracy < 0.6
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI model accuracy low"
+          description: "AI model accuracy is below 60%."
+
+  - name: database_alerts
+    rules:
+      - alert: PostgresHighConnections
+        expr: pg_stat_database_numbackends > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections high"
+          description: "PostgreSQL connection count is above 100."
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_database_xact_commit[5m]) < 1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL slow queries"
+          description: "PostgreSQL transaction rate is very low, indicating slow queries."
+
+      - alert: PostgresDiskSpaceLow
+        expr: pg_database_size_bytes > 0.8 * 107374182400
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL disk space low"
+          description: "PostgreSQL database size is above 80% of 100GB limit."
+
+  - name: redis_alerts
+    rules:
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is above 80%."
+
+      - alert: RedisLowHitRatio
+        expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis hit ratio low"
+          description: "Redis cache hit ratio is below 50%."
+
+  - name: celery_alerts
+    rules:
+      - alert: CeleryQueueSizeHigh
+        expr: celery_task_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery queue size high"
+          description: "Celery queue size is above 1000 tasks."
+
+      - alert: CeleryFailedTasks
+        expr: rate(celery_task_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Celery tasks failing"
+          description: "Celery task failure rate is above 10%."
+
+      - alert: CeleryWorkerDown
+        expr: up{job="celery-flower"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Celery worker down"
+          description: "Celery worker is not responding."
+
+  - name: system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "System CPU usage is above 85% for 10 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "System memory usage is above 90%."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space low"
+          description: "Disk space is below 20%."
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service down"
+          description: "Service {{ $labels.job }} is down."

@@ -1,0 +1,504 @@
+# =============================================================================
+# InvestWise AI - CircleCI Configuration
+# Pipeline: Lint → Unit Tests → Integration Tests → AI Tests → Docker Build
+#           → Security Scan → Deploy → Health Check → Notify
+# =============================================================================
+
+version: 2.1
+
+# -----------------------------------------------------------------------------
+# Orbs
+# -----------------------------------------------------------------------------
+orbs:
+  python: circleci/python@2.1.1
+  node: circleci/node@6.1.0
+  docker: circleci/docker@2.2.0
+  aws-ecr: circleci/aws-ecr@9.0.0
+  aws-ecs: circleci/aws-ecs@3.2.0
+  slack: circleci/slack@4.12.1
+
+# -----------------------------------------------------------------------------
+# Executors
+# -----------------------------------------------------------------------------
+executors:
+  python-executor:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: large
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      PYTHONUNBUFFERED: 1
+
+  node-executor:
+    docker:
+      - image: cimg/node:20.11
+    resource_class: medium
+
+  docker-executor:
+    docker:
+      - image: cimg/base:2024.01
+    resource_class: large
+
+# -----------------------------------------------------------------------------
+# Commands
+# -----------------------------------------------------------------------------
+commands:
+  install-backend-deps:
+    description: "Install backend Python dependencies"
+    steps:
+      - python/install-packages:
+          pkg-manager: pip
+          args: "-r requirements.txt -r AI/requirements.txt"
+
+  install-frontend-deps:
+    description: "Install frontend Node dependencies"
+    steps:
+      - node/install-packages:
+          pkg-manager: npm
+          cache-key: "frontend-package-lock-{{ checksum 'frontend/package-lock.json' }}"
+          app-dir: frontend
+
+  run-backend-tests:
+    description: "Run backend unit and integration tests"
+    steps:
+      - run:
+          name: Run Backend Tests
+          command: |
+            cd backend
+            python manage.py test --verbosity=2
+          environment:
+            DJANGO_SETTINGS_MODULE: config.settings.development
+
+  run-ai-tests:
+    description: "Run AI engine tests"
+    steps:
+      - run:
+          name: Run AI Tests
+          command: |
+            python -m pytest tests/test_ai_engine.py tests/test_learning_engine.py tests/test_data_engineering.py -v --tb=short
+
+  run-api-tests:
+    description: "Run API integration tests"
+    steps:
+      - run:
+          name: Run API Tests
+          command: |
+            python -m pytest tests/test_backend_api.py tests/test_chat_and_tasks.py tests/test_validators.py -v --tb=short
+
+  run-lint:
+    description: "Run Python linting"
+    steps:
+      - run:
+          name: Run Python Lint
+          command: |
+            pip install flake8 black isort
+            flake8 backend/ --max-line-length=120 --exclude=migrations
+            black --check backend/ --exclude=migrations
+            isort --check-only backend/ --skip migrations
+
+  run-frontend-lint:
+    description: "Run frontend linting and type checking"
+    steps:
+      - run:
+          name: Run Frontend Lint
+          command: |
+            cd frontend
+            npm run lint
+            npx tsc --noEmit
+
+  run-frontend-build:
+    description: "Build frontend production bundle"
+    steps:
+      - run:
+          name: Build Frontend
+          command: |
+            cd frontend
+            npm run build
+
+  run-security-scan:
+    description: "Run security scans on Docker images"
+    steps:
+      - run:
+          name: Install Trivy
+          command: |
+            wget -qO - https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+            trivy --version
+
+      - run:
+          name: Scan Backend Image
+          command: |
+            trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress investwise/backend:latest
+
+      - run:
+          name: Scan Frontend Image
+          command: |
+            trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress investwise/frontend:latest
+
+      - run:
+          name: Scan AI Image
+          command: |
+            trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress investwise/ai:latest
+
+  run-health-check:
+    description: "Verify deployed services are healthy"
+    steps:
+      - run:
+          name: Health Check Backend
+          command: |
+            curl -f --retry 5 --retry-delay 10 --retry-connrefused \
+              https://${DEPLOY_DOMAIN}/api/health/ || exit 1
+
+      - run:
+          name: Health Check Frontend
+          command: |
+            curl -f --retry 5 --retry-delay 10 --retry-connrefused \
+              https://${DEPLOY_DOMAIN}/ || exit 1
+
+  notify-slack:
+    description: "Send Slack notification"
+    parameters:
+      status:
+        type: string
+        default: "success"
+    steps:
+      - slack/notify:
+          event: always
+          channel: ${SLACK_CHANNEL}
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*InvestWise AI Deployment*: << parameters.status >>\nBranch: ${CIRCLE_BRANCH}\nCommit: ${CIRCLE_SHA1}\nJob: ${CIRCLE_JOB}"
+                  }
+                }
+              ]
+            }
+
+# -----------------------------------------------------------------------------
+# Jobs
+# -----------------------------------------------------------------------------
+jobs:
+  # ===========================================================================
+  # Lint & Static Analysis
+  # ===========================================================================
+  lint-backend:
+    executor: python-executor
+    steps:
+      - checkout
+      - install-backend-deps
+      - run-lint
+      - notify-slack:
+          status: "Lint Backend"
+
+  lint-frontend:
+    executor: node-executor
+    steps:
+      - checkout
+      - install-frontend-deps
+      - run-frontend-lint
+      - notify-slack:
+          status: "Lint Frontend"
+
+  # ===========================================================================
+  # Unit & Integration Tests
+  # ===========================================================================
+  test-backend:
+    executor: python-executor
+    steps:
+      - checkout
+      - install-backend-deps
+      - run-backend-tests
+      - notify-slack:
+          status: "Backend Tests"
+
+  test-api:
+    executor: python-executor
+    steps:
+      - checkout
+      - install-backend-deps
+      - run-api-tests
+      - notify-slack:
+          status: "API Tests"
+
+  test-ai:
+    executor: python-executor
+    steps:
+      - checkout
+      - install-backend-deps
+      - run-ai-tests
+      - notify-slack:
+          status: "AI Tests"
+
+  test-frontend:
+    executor: node-executor
+    steps:
+      - checkout
+      - install-frontend-deps
+      - run-frontend-build
+      - notify-slack:
+          status: "Frontend Build"
+
+  # ===========================================================================
+  # Docker Build & Push
+  # ===========================================================================
+  build-docker:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 20.10.14
+
+      - run:
+          name: Build Backend Image
+          command: |
+            docker build -f docker/Dockerfile.backend -t investwise/backend:${CIRCLE_SHA1} .
+            docker tag investwise/backend:${CIRCLE_SHA1} investwise/backend:latest
+
+      - run:
+          name: Build Frontend Image
+          command: |
+            docker build -f docker/Dockerfile.frontend -t investwise/frontend:${CIRCLE_SHA1} .
+            docker tag investwise/frontend:${CIRCLE_SHA1} investwise/frontend:latest
+
+      - run:
+          name: Build AI Image
+          command: |
+            docker build -f docker/Dockerfile.ai -t investwise/ai:${CIRCLE_SHA1} .
+            docker tag investwise/ai:${CIRCLE_SHA1} investwise/ai:latest
+
+      - run:
+          name: Build Celery Image
+          command: |
+            docker build -f docker/Dockerfile.celery -t investwise/celery:${CIRCLE_SHA1} .
+            docker tag investwise/celery:${CIRCLE_SHA1} investwise/celery:latest
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - docker-compose.prod.yml
+            - docker/nginx.conf
+            - docker/nginx-frontend.conf
+
+      - notify-slack:
+          status: "Docker Build"
+
+  # ===========================================================================
+  # Security Scan
+  # ===========================================================================
+  security-scan:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run-security-scan
+      - notify-slack:
+          status: "Security Scan"
+
+  # ===========================================================================
+  # Deploy to AWS ECS
+  # ===========================================================================
+  deploy-aws:
+    executor: docker-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+
+      - aws-ecr/build-and-push-image:
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          repo: investwise/backend
+          tag: ${CIRCLE_SHA1},latest
+          dockerfile: docker/Dockerfile.backend
+
+      - aws-ecr/build-and-push-image:
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          repo: investwise/frontend
+          tag: ${CIRCLE_SHA1},latest
+          dockerfile: docker/Dockerfile.frontend
+
+      - aws-ecr/build-and-push-image:
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          repo: investwise/ai
+          tag: ${CIRCLE_SHA1},latest
+          dockerfile: docker/Dockerfile.ai
+
+      - aws-ecr/build-and-push-image:
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          repo: investwise/celery
+          tag: ${CIRCLE_SHA1},latest
+          dockerfile: docker/Dockerfile.celery
+
+      - aws-ecs/update-service:
+          family: investwise-backend-service
+          cluster-name: investwise-cluster
+          service-name: investwise-backend-service
+          container-image-name-updates: "container=backend,tag=${CIRCLE_SHA1}"
+
+      - aws-ecs/update-service:
+          family: investwise-frontend-service
+          cluster-name: investwise-cluster
+          service-name: investwise-frontend-service
+          container-image-name-updates: "container=frontend,tag=${CIRCLE_SHA1}"
+
+      - aws-ecs/update-service:
+          family: investwise-ai-service
+          cluster-name: investwise-cluster
+          service-name: investwise-ai-service
+          container-image-name-updates: "container=ai,tag=${CIRCLE_SHA1}"
+
+      - aws-ecs/update-service:
+          family: investwise-celery-service
+          cluster-name: investwise-cluster
+          service-name: investwise-celery-service
+          container-image-name-updates: "container=celery,tag=${CIRCLE_SHA1}"
+
+      - run-health-check
+      - notify-slack:
+          status: "Deploy to AWS"
+
+  # ===========================================================================
+  # Deploy to Docker (self-hosted)
+  # ===========================================================================
+  deploy-docker:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - add_ssh_keys:
+          fingerprints:
+            - ${SSH_FINGERPRINT}
+
+      - run:
+          name: Deploy to Production Server
+          command: |
+            scp -o StrictHostKeyChecking=no \
+              docker-compose.prod.yml \
+              docker/nginx.conf \
+              docker/nginx-frontend.conf \
+              ${DEPLOY_USER}@${DEPLOY_HOST}:/opt/investwise/
+
+            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'EOF'
+              cd /opt/investwise
+              docker-compose -f docker-compose.prod.yml pull
+              docker-compose -f docker-compose.prod.yml up -d --no-deps backend ai celery-worker celery-beat frontend nginx
+              docker system prune -f
+            EOF
+
+      - run-health-check
+      - notify-slack:
+          status: "Deploy to Docker"
+
+# -----------------------------------------------------------------------------
+# Workflows
+# -----------------------------------------------------------------------------
+workflows:
+  version: 2
+
+  # ===========================================================================
+  # Main CI/CD Pipeline
+  # ===========================================================================
+  ci-cd:
+    jobs:
+      # --- Lint & Static Analysis ---
+      - lint-backend:
+          filters:
+            branches:
+              only: /.*/
+
+      - lint-frontend:
+          filters:
+            branches:
+              only: /.*/
+
+      # --- Tests (run in parallel after lint) ---
+      - test-backend:
+          requires:
+            - lint-backend
+
+      - test-api:
+          requires:
+            - lint-backend
+
+      - test-ai:
+          requires:
+            - lint-backend
+
+      - test-frontend:
+          requires:
+            - lint-frontend
+
+      # --- Docker Build (after all tests pass) ---
+      - build-docker:
+          requires:
+            - test-backend
+            - test-api
+            - test-ai
+            - test-frontend
+          filters:
+            branches:
+              only: /.*/
+
+      # --- Security Scan (after Docker build) ---
+      - security-scan:
+          requires:
+            - build-docker
+          filters:
+            branches:
+              only: /.*/
+
+      # --- Deploy (only on main/master branch) ---
+      - deploy-aws:
+          requires:
+            - security-scan
+          filters:
+            branches:
+              only:
+                - main
+                - master
+          context:
+            - investwise-aws
+
+      - deploy-docker:
+          requires:
+            - security-scan
+          filters:
+            branches:
+              only:
+                - main
+                - master
+          context:
+            - investwise-docker
+
+  # ===========================================================================
+  # Nightly Scheduled Workflow (Continuous Retraining & Backups)
+  # ===========================================================================
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - test-backend
+      - test-ai
+      - build-docker:
+          requires:
+            - test-backend
+            - test-ai
+      - security-scan:
+          requires:
+            - build-docker
+      - deploy-aws:
+          requires:
+            - security-scan
+          context:
+            - investwise-aws

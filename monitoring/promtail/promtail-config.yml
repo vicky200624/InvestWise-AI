@@ -1,0 +1,94 @@
+# =============================================================================
+# InvestWise AI - Promtail Configuration (Log Collection)
+# =============================================================================
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 9095
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ---------------------------------------------------------------------------
+  # Application Logs (Django, Celery, AI)
+  # ---------------------------------------------------------------------------
+  - job_name: application-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: application
+          __path__: /logs/*.log
+
+  # ---------------------------------------------------------------------------
+  # Docker Container Logs
+  # ---------------------------------------------------------------------------
+  - job_name: docker-containers
+    pipeline_stages:
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+            tag: attrs.tag
+            container_name: attrs.container_name
+      - labels:
+          stream:
+          container_name:
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+  # ---------------------------------------------------------------------------
+  # NGINX Access Logs
+  # ---------------------------------------------------------------------------
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          __path__: /logs/nginx/access.log
+
+  # ---------------------------------------------------------------------------
+  # NGINX Error Logs
+  # ---------------------------------------------------------------------------
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          __path__: /logs/nginx/error.log
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Logs
+  # ---------------------------------------------------------------------------
+  - job_name: postgres
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: postgres
+          __path__: /logs/postgres/*.log
+
+  # ---------------------------------------------------------------------------
+  # Redis Logs
+  # ---------------------------------------------------------------------------
+  - job_name: redis
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: redis
+          __path__: /logs/redis/*.log
