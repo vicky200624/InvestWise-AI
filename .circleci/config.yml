@@ -1,7 +1,7 @@
 # =============================================================================
 # InvestWise AI - CircleCI Configuration
-# Pipeline: Lint → Unit Tests → Integration Tests → AI Tests → Docker Build
-#           → Security Scan → Deploy → Health Check → Notify
+# Pipeline: Lint  Unit Tests  Integration Tests  AI Tests  Docker Build
+#            Security Scan  Deploy  Health Check  Notify
 # =============================================================================
 
 version: 2.1
@@ -299,62 +299,50 @@ jobs:
           at: .
 
       - aws-ecr/build-and-push-image:
-          account_id: ${AWS_ACCOUNT_ID}
-          region: ${AWS_REGION}
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
           repo: investwise/backend
           tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.backend
-          auth:
-            - aws-cli/setup
 
       - aws-ecr/build-and-push-image:
-          account_id: ${AWS_ACCOUNT_ID}
-          region: ${AWS_REGION}
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
           repo: investwise/frontend
           tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.frontend
-          auth:
-            - aws-cli/setup
 
       - aws-ecr/build-and-push-image:
-          account_id: ${AWS_ACCOUNT_ID}
-          region: ${AWS_REGION}
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
           repo: investwise/ai
           tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.ai
-          auth:
-            - aws-cli/setup
 
       - aws-ecr/build-and-push-image:
-          account_id: ${AWS_ACCOUNT_ID}
-          region: ${AWS_REGION}
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
           repo: investwise/celery
           tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.celery
-          auth:
-            - aws-cli/setup
 
       - aws-ecs/update-service:
           family: investwise-backend-service
-          cluster: investwise-cluster
+          cluster-name: investwise-cluster
           service-name: investwise-backend-service
           container-image-name-updates: "container=backend,tag=${CIRCLE_SHA1}"
 
       - aws-ecs/update-service:
           family: investwise-frontend-service
-          cluster: investwise-cluster
+          cluster-name: investwise-cluster
           service-name: investwise-frontend-service
           container-image-name-updates: "container=frontend,tag=${CIRCLE_SHA1}"
 
       - aws-ecs/update-service:
           family: investwise-ai-service
-          cluster: investwise-cluster
+          cluster-name: investwise-cluster
           service-name: investwise-ai-service
           container-image-name-updates: "container=ai,tag=${CIRCLE_SHA1}"
 
       - aws-ecs/update-service:
           family: investwise-celery-service
-          cluster: investwise-cluster
+          cluster-name: investwise-cluster
           service-name: investwise-celery-service
           container-image-name-updates: "container=celery,tag=${CIRCLE_SHA1}"
 
@@ -385,7 +373,7 @@ jobs:
             ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'EOF'
               cd /opt/investwise
               docker-compose -f docker-compose.prod.yml pull
-              docker-compose -f docker-compose.prod.yml up -d --no-deps backend ai celery_worker celery_beat frontend nginx
+              docker-compose -f docker-compose.prod.yml up -d --no-deps backend ai celery-worker celery-beat frontend nginx
               docker system prune -f
             EOF
 
