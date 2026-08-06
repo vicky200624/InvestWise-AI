@@ -13,6 +13,7 @@ orbs:
   python: circleci/python@2.1.1
   node: circleci/node@6.1.0
   docker: circleci/docker@2.2.0
+  aws-cli: circleci/aws-cli@4.1.2
   aws-ecr: circleci/aws-ecr@9.0.0
   aws-ecs: circleci/aws-ecs@3.2.0
   slack: circleci/slack@4.12.1
@@ -46,16 +47,20 @@ commands:
   install-backend-deps:
     description: "Install backend Python dependencies"
     steps:
-      - python/install-packages:
-          pkg-manager: pip
-          args: "-r requirements.txt -r AI/requirements.txt"
+      - run:
+          name: Install Python dependencies
+          command: |
+            pip install --upgrade pip
+            pip install -r requirements.txt -r AI/requirements.txt
 
   install-frontend-deps:
     description: "Install frontend Node dependencies"
     steps:
-      - node/install-packages:
-          pkg-manager: npm
-          app-dir: frontend
+      - run:
+          name: Install Node dependencies
+          command: |
+            cd frontend
+            npm ci
 
   run-backend-tests:
     description: "Run backend unit and integration tests"
@@ -180,9 +185,6 @@ commands:
 # Jobs
 # -----------------------------------------------------------------------------
 jobs:
-  # ===========================================================================
-  # Lint & Static Analysis
-  # ===========================================================================
   lint-backend:
     executor: python-executor
     steps:
@@ -201,9 +203,6 @@ jobs:
       - notify-slack:
           status: "Lint Frontend"
 
-  # ===========================================================================
-  # Unit & Integration Tests
-  # ===========================================================================
   test-backend:
     executor: python-executor
     steps:
@@ -240,9 +239,6 @@ jobs:
       - notify-slack:
           status: "Frontend Build"
 
-  # ===========================================================================
-  # Docker Build & Push
-  # ===========================================================================
   build-docker:
     executor: docker-executor
     steps:
@@ -285,9 +281,6 @@ jobs:
       - notify-slack:
           status: "Docker Build"
 
-  # ===========================================================================
-  # Security Scan
-  # ===========================================================================
   security-scan:
     executor: docker-executor
     steps:
@@ -298,9 +291,6 @@ jobs:
       - notify-slack:
           status: "Security Scan"
 
-  # ===========================================================================
-  # Deploy to AWS ECS
-  # ===========================================================================
   deploy-aws:
     executor: docker-executor
     steps:
@@ -309,50 +299,62 @@ jobs:
           at: .
 
       - aws-ecr/build-and-push-image:
-          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          account_id: ${AWS_ACCOUNT_ID}
+          region: ${AWS_REGION}
           repo: investwise/backend
-          tag: ${CIRCLE_SHA1},latest
+          tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.backend
+          auth:
+            - aws-cli/setup
 
       - aws-ecr/build-and-push-image:
-          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          account_id: ${AWS_ACCOUNT_ID}
+          region: ${AWS_REGION}
           repo: investwise/frontend
-          tag: ${CIRCLE_SHA1},latest
+          tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.frontend
+          auth:
+            - aws-cli/setup
 
       - aws-ecr/build-and-push-image:
-          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          account_id: ${AWS_ACCOUNT_ID}
+          region: ${AWS_REGION}
           repo: investwise/ai
-          tag: ${CIRCLE_SHA1},latest
+          tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.ai
+          auth:
+            - aws-cli/setup
 
       - aws-ecr/build-and-push-image:
-          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          account_id: ${AWS_ACCOUNT_ID}
+          region: ${AWS_REGION}
           repo: investwise/celery
-          tag: ${CIRCLE_SHA1},latest
+          tag: "${CIRCLE_SHA1},latest"
           dockerfile: docker/Dockerfile.celery
+          auth:
+            - aws-cli/setup
 
       - aws-ecs/update-service:
           family: investwise-backend-service
-          cluster-name: investwise-cluster
+          cluster: investwise-cluster
           service-name: investwise-backend-service
           container-image-name-updates: "container=backend,tag=${CIRCLE_SHA1}"
 
       - aws-ecs/update-service:
           family: investwise-frontend-service
-          cluster-name: investwise-cluster
+          cluster: investwise-cluster
           service-name: investwise-frontend-service
           container-image-name-updates: "container=frontend,tag=${CIRCLE_SHA1}"
 
       - aws-ecs/update-service:
           family: investwise-ai-service
-          cluster-name: investwise-cluster
+          cluster: investwise-cluster
           service-name: investwise-ai-service
           container-image-name-updates: "container=ai,tag=${CIRCLE_SHA1}"
 
       - aws-ecs/update-service:
           family: investwise-celery-service
-          cluster-name: investwise-cluster
+          cluster: investwise-cluster
           service-name: investwise-celery-service
           container-image-name-updates: "container=celery,tag=${CIRCLE_SHA1}"
 
@@ -360,9 +362,6 @@ jobs:
       - notify-slack:
           status: "Deploy to AWS"
 
-  # ===========================================================================
-  # Deploy to Docker (self-hosted)
-  # ===========================================================================
   deploy-docker:
     executor: docker-executor
     steps:
@@ -386,7 +385,7 @@ jobs:
             ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} << 'EOF'
               cd /opt/investwise
               docker-compose -f docker-compose.prod.yml pull
-              docker-compose -f docker-compose.prod.yml up -d --no-deps backend ai celery-worker celery-beat frontend nginx
+              docker-compose -f docker-compose.prod.yml up -d --no-deps backend ai celery_worker celery_beat frontend nginx
               docker system prune -f
             EOF
 
@@ -399,41 +398,28 @@ jobs:
 # -----------------------------------------------------------------------------
 workflows:
   version: 2
-
-  # ===========================================================================
-  # Main CI/CD Pipeline
-  # ===========================================================================
   ci-cd:
     jobs:
-      # --- Lint & Static Analysis ---
       - lint-backend:
           filters:
             branches:
               only: /.*/
-
       - lint-frontend:
           filters:
             branches:
               only: /.*/
-
-      # --- Tests (run in parallel after lint) ---
       - test-backend:
           requires:
             - lint-backend
-
       - test-api:
           requires:
             - lint-backend
-
       - test-ai:
           requires:
             - lint-backend
-
       - test-frontend:
           requires:
             - lint-frontend
-
-      # --- Docker Build (after all tests pass) ---
       - build-docker:
           requires:
             - test-backend
@@ -443,16 +429,12 @@ workflows:
           filters:
             branches:
               only: /.*/
-
-      # --- Security Scan (after Docker build) ---
       - security-scan:
           requires:
             - build-docker
           filters:
             branches:
               only: /.*/
-
-      # --- Deploy (only on main/master branch) ---
       - deploy-aws:
           requires:
             - security-scan
@@ -463,7 +445,6 @@ workflows:
                 - master
           context:
             - investwise-aws
-
       - deploy-docker:
           requires:
             - security-scan
@@ -475,9 +456,6 @@ workflows:
           context:
             - investwise-docker
 
-  # ===========================================================================
-  # Nightly Scheduled Workflow (Continuous Retraining & Backups)
-  # ===========================================================================
   nightly:
     triggers:
       - schedule:
