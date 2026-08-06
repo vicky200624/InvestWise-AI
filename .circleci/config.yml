@@ -1,7 +1,7 @@
 # =============================================================================
 # InvestWise AI - CircleCI Configuration
-# Pipeline: Lint  Unit Tests  Integration Tests  AI Tests  Docker Build
-#            Security Scan  Deploy  Health Check  Notify 
+# Pipeline: Lint  Unit Tests  Integration Tests  AI Tests  Docker Build
+#            Security Scan  Deploy  Health Check  Notify 
 # =============================================================================
 
 version: 2.1
@@ -175,7 +175,7 @@ commands:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*InvestWise AI Deployment*: << parameters.status >>\nBranch: ${CIRCLE_BRANCH}\nCommit: ${CIRCLE_SHA1}\nJob: ${CIRCLE_JOB}"
+                    "text": "*InvestWise AI Deployment*: <{ parameters.status }>\nBranch: ${CIRCLE_BRANCH}\nCommit: ${CIRCLE_SHA1}\nJob: ${CIRCLE_JOB}"
                   }
                 }
               ]
