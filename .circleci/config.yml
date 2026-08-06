@@ -55,7 +55,6 @@ commands:
     steps:
       - node/install-packages:
           pkg-manager: npm
-          cache-key: "frontend-package-lock-{{ checksum 'frontend/package-lock.json' }}"
           app-dir: frontend
 
   run-backend-tests:
