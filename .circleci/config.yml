@@ -230,6 +230,15 @@ jobs:
       - notify-slack:
           status: "AI Tests"
 
+  # Short job to verify ECR credentials/login separately
+  test-ecr-login:
+    executor: docker-executor
+    steps:
+      - checkout
+      - aws-cli/setup
+      - aws-ecr/login:
+          account-url: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
   test-frontend:
     executor: node-executor
     steps:
