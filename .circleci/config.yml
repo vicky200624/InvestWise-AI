@@ -187,19 +187,3 @@ jobs:
 
       # 8. Verify the deployment
       - verify-deployment
-
-# -----------------------------------------------------------------------------
-# Workflows
-# -----------------------------------------------------------------------------
-# The workflow triggers only when code is pushed to the `main` branch.
-# This ensures automatic deployment after every successful push to main.
-# -----------------------------------------------------------------------------
-workflows:
-  version: 2
-  ci-cd:
-    jobs:
-      - build-and-deploy:
-          filters:
-            branches:
-              only:
-                - main
