@@ -40,7 +40,8 @@ commands:
           name: "Configure SSH key"
           command: |
             mkdir -p ~/.ssh
-            echo "${EC2_SSH_KEY}" > ~/.ssh/ec2_deploy_key
+            # Decode the Base64 environment variable back into a standard PEM file
+            echo "${EC2_SSH_KEY}" | base64 --decode > ~/.ssh/ec2_deploy_key
             chmod 600 ~/.ssh/ec2_deploy_key
             ssh-keyscan -H ${EC2_HOST} >> ~/.ssh/known_hosts 2>/dev/null || true
 
