@@ -1,10 +1,3 @@
-# =============================================================================
-# InvestWise AI - CircleCI CI/CD Configuration (Deployment Pipeline)
-# -----------------------------------------------------------------------------
-# Trigger: Only on push to the `main` branch.
-# Secrets: All stored as CircleCI Environment Variables (see DEPLOYMENT.md).
-# =============================================================================
-
 version: 2.1
 
 orbs:
@@ -14,9 +7,6 @@ executors:
   docker-executor:
     docker:
       - image: cimg/base:2024.01
-    environment:
-      IMAGE_NAME: "${DOCKER_USERNAME}/investai"
-      IMAGE_TAG: "latest"
 
 commands:
   build-docker-image:
@@ -25,11 +15,7 @@ commands:
       - run:
           name: "Build Docker image"
           command: |
-            echo "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
-            docker build \
-              -f docker/Dockerfile.backend \
-              -t ${IMAGE_NAME}:${IMAGE_TAG} \
-              .
+            docker build -f docker/Dockerfile.backend -t ${DOCKER_USERNAME}/investai:latest .
 
   login-docker-hub:
     description: "Login to Docker Hub"
@@ -45,8 +31,7 @@ commands:
       - run:
           name: "Push Docker image"
           command: |
-            echo "Pushing ${IMAGE_NAME}:${IMAGE_TAG} to Docker Hub"
-            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            docker push ${DOCKER_USERNAME}/investai:latest
 
   setup-ssh-key:
     description: "Write EC2 SSH private key to a file"
@@ -91,10 +76,7 @@ jobs:
     executor: docker-executor
     steps:
       - checkout
-      
-      # FIX: Removed the unsupported version tag. CircleCI will use the default.
       - setup_remote_docker
-
       - build-docker-image
       - login-docker-hub
       - push-docker-image
