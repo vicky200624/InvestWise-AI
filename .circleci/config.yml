@@ -13,6 +13,11 @@ commands:
     description: "Build the InvestAI Docker image"
     steps:
       - run:
+          name: "Fix xgboost version for Python 3.11 compatibility"
+          command: |
+            # xgboost==3.3.0 requires Python >=3.12; Dockerfile uses Python 3.11
+            sed -i 's/xgboost==3\.3\.0/xgboost==3.2.0/' requirements.txt
+      - run:
           name: "Build Docker image"
           command: |
             docker build -f docker/Dockerfile.backend -t ${DOCKER_USERNAME}/investai:latest .
