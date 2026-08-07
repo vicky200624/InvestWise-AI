@@ -48,7 +48,6 @@ executors:
   docker-executor:
     docker:
       - image: cimg/base:2024.01
-    resource_class: large
     environment:
       # The image name is constructed from the DOCKER_USERNAME env var.
       # DOCKER_USERNAME is set as a CircleCI environment variable.
@@ -165,9 +164,9 @@ jobs:
       # 1. Checkout the repository
       - checkout
 
-      # 2. Set up Remote Docker with layer caching enabled for faster builds
+      # 2. Set up Remote Docker (layer caching disabled for free tier)
       - setup_remote_docker:
-          docker_layer_caching: true
+          docker_layer_caching: false
           version: 20.10.14
 
       # 3. Build the Docker image using the existing Dockerfile
@@ -189,7 +188,7 @@ jobs:
       - verify-deployment
 
 # -----------------------------------------------------------------------------
-# Workflows (THIS WAS MISSING)
+# Workflows
 # -----------------------------------------------------------------------------
 workflows:
   version: 2
