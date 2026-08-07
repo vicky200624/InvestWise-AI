@@ -7,9 +7,20 @@ DEBUG = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://investwiseai.duckdns.org",
+    "http://investwiseai.duckdns.org:8000",
 ]
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver', '*']
+# Added DuckDNS domain and EC2 IP for external access
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1', 
+    '0.0.0.0', 
+    'testserver', 
+    '54.87.205.228',
+    'investwiseai.duckdns.org',
+    '*'  # Note: '*' allows all traffic, which is fine for testing but can be removed for strict security later
+]
 
 CORS_ALLOW_ALL_ORIGINS = False
 
