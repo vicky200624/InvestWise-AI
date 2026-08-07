@@ -1,68 +1,24 @@
 # =============================================================================
 # InvestWise AI - CircleCI CI/CD Configuration (Deployment Pipeline)
 # -----------------------------------------------------------------------------
-# Pipeline Flow:
-#   git push origin main
-#       │
-#       ▼
-#   GitHub Repository
-#       │
-#       ▼
-#   CircleCI
-#     ├── Checkout repository
-#     ├── Build Docker image (using existing Dockerfile)
-#     ├── Tag image as ${DOCKER_USERNAME}/investai:latest
-#     ├── Login to Docker Hub
-#     ├── Push image to Docker Hub
-#     ├── SSH into AWS EC2
-#     ├── Pull latest Docker image
-#     ├── Stop existing InvestAI container
-#     ├── Remove old container
-#     ├── Remove unused images
-#     ├── Run new InvestAI container
-#     ├── Verify deployment (docker ps)
-#       ▼
-#   InvestAI running on AWS EC2
-#
 # Trigger: Only on push to the `main` branch.
 # Secrets: All stored as CircleCI Environment Variables (see DEPLOYMENT.md).
 # =============================================================================
 
 version: 2.1
 
-# -----------------------------------------------------------------------------
-# Orbs
-# -----------------------------------------------------------------------------
-# The `docker` orb provides convenient commands for Docker login and image
-# management. We use it for the Docker Hub login step.
 orbs:
   docker: circleci/docker@2.2.0
 
-# -----------------------------------------------------------------------------
-# Executors
-# -----------------------------------------------------------------------------
-# A lightweight base image is sufficient because all compilation happens inside
-# the Docker build (the Dockerfile handles dependency installation). We only
-# need the `docker` CLI on the CircleCI runner to build, tag, and push images.
 executors:
   docker-executor:
     docker:
       - image: cimg/base:2024.01
     environment:
-      # The image name is constructed from the DOCKER_USERNAME env var.
-      # DOCKER_USERNAME is set as a CircleCI environment variable.
       IMAGE_NAME: "${DOCKER_USERNAME}/investai"
       IMAGE_TAG: "latest"
 
-# -----------------------------------------------------------------------------
-# Commands
-# -----------------------------------------------------------------------------
 commands:
-  # ---------------------------------------------------------------------------
-  # Build the Docker image using the existing backend Dockerfile.
-  # The backend Dockerfile (docker/Dockerfile.backend) exposes port 8000 and
-  # runs gunicorn, which maps to host port 80 in the deployment.
-  # ---------------------------------------------------------------------------
   build-docker-image:
     description: "Build the InvestAI Docker image"
     steps:
@@ -75,10 +31,6 @@ commands:
               -t ${IMAGE_NAME}:${IMAGE_TAG} \
               .
 
-  # ---------------------------------------------------------------------------
-  # Authenticate with Docker Hub using the DOCKER_USERNAME and DOCKER_PASSWORD
-  # environment variables configured in the CircleCI project settings.
-  # ---------------------------------------------------------------------------
   login-docker-hub:
     description: "Login to Docker Hub"
     steps:
@@ -87,9 +39,6 @@ commands:
           command: |
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
-  # ---------------------------------------------------------------------------
-  # Push the tagged image to Docker Hub.
-  # ---------------------------------------------------------------------------
   push-docker-image:
     description: "Push Docker image to Docker Hub"
     steps:
@@ -99,11 +48,6 @@ commands:
             echo "Pushing ${IMAGE_NAME}:${IMAGE_TAG} to Docker Hub"
             docker push ${IMAGE_NAME}:${IMAGE_TAG}
 
-  # ---------------------------------------------------------------------------
-  # Prepare the SSH private key on the CircleCI runner so we can connect to
-  # the AWS EC2 instance. The key is stored as the EC2_SSH_KEY environment
-  # variable in CircleCI project settings.
-  # ---------------------------------------------------------------------------
   setup-ssh-key:
     description: "Write EC2 SSH private key to a file"
     steps:
@@ -115,11 +59,6 @@ commands:
             chmod 600 ~/.ssh/ec2_deploy_key
             ssh-keyscan -H ${EC2_HOST} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-  # ---------------------------------------------------------------------------
-  # Copy the deploy.sh script to the EC2 instance and execute it remotely.
-  # The deploy.sh script handles pulling the new image, stopping/removing the
-  # old container, pruning unused images, and starting the new container.
-  # ---------------------------------------------------------------------------
   deploy-to-ec2:
     description: "Deploy to AWS EC2 via SSH"
     steps:
@@ -137,9 +76,6 @@ commands:
               ${EC2_USER}@${EC2_HOST} \
               "bash /tmp/deploy.sh ${DOCKER_USERNAME}"
 
-  # ---------------------------------------------------------------------------
-  # Verify the deployment by checking that the container is running on EC2.
-  # ---------------------------------------------------------------------------
   verify-deployment:
     description: "Verify deployment on EC2"
     steps:
@@ -150,46 +86,22 @@ commands:
               ${EC2_USER}@${EC2_HOST} \
               "docker ps"
 
-# -----------------------------------------------------------------------------
-# Jobs
-# -----------------------------------------------------------------------------
 jobs:
-  # ---------------------------------------------------------------------------
-  # Build, push, and deploy the InvestAI Docker image.
-  # This job runs only when code is pushed to the `main` branch.
-  # ---------------------------------------------------------------------------
   build-and-deploy:
     executor: docker-executor
     steps:
-      # 1. Checkout the repository
       - checkout
+      
+      # FIX: Removed the unsupported version tag. CircleCI will use the default.
+      - setup_remote_docker
 
-      # 2. Set up Remote Docker (layer caching disabled for free tier)
-      - setup_remote_docker:
-          docker_layer_caching: false
-          version: 20.10.14
-
-      # 3. Build the Docker image using the existing Dockerfile
       - build-docker-image
-
-      # 4. Login to Docker Hub
       - login-docker-hub
-
-      # 5. Push the Docker image to Docker Hub
       - push-docker-image
-
-      # 6. Configure SSH key for EC2 access
       - setup-ssh-key
-
-      # 7. Deploy to AWS EC2 (pull, stop, remove, prune, run)
       - deploy-to-ec2
-
-      # 8. Verify the deployment
       - verify-deployment
 
-# -----------------------------------------------------------------------------
-# Workflows
-# -----------------------------------------------------------------------------
 workflows:
   version: 2
   investai_pipeline:
