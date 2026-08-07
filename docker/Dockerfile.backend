@@ -17,6 +17,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    default-libmysqlclient-dev \
+    pkg-config \
     libffi-dev \
     libssl-dev \
     curl \
@@ -28,11 +30,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements first for better layer caching
 COPY requirements.txt /tmp/requirements.txt
-COPY requirements.txt /tmp/backend-requirements.txt
+
 # Install Python dependencies
 RUN pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt && \
-    pip install -r /tmp/backend-requirements.txt
+    pip install -r /tmp/requirements.txt
 
 # ---------- Final Stage ----------
 FROM python:3.11-slim AS final
@@ -46,6 +47,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    default-libmysqlclient-dev \
     libffi8 \
     libssl3 \
     curl \
