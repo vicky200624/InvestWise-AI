@@ -187,3 +187,16 @@ jobs:
 
       # 8. Verify the deployment
       - verify-deployment
+
+# -----------------------------------------------------------------------------
+# Workflows (THIS WAS MISSING)
+# -----------------------------------------------------------------------------
+workflows:
+  version: 2
+  investai_pipeline:
+    jobs:
+      - build-and-deploy:
+          filters:
+            branches:
+              only:
+                - main
