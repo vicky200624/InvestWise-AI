@@ -13,7 +13,7 @@ python-dotenv==1.2.2
 sqlparse==0.5.5
 dj-database-url==2.3.0
 
-
+django-extensions>=3.2.3
 # --- Async Infrastructure (Celery + Redis + Channels) ---
 celery==5.6.3
 redis==8.0.1
