@@ -4,8 +4,8 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent  # /home/vicky/Documents/investai/backend
-ROOT_DIR = BASE_DIR.parent  # /home/vicky/Documents/investai
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # /app/backend or repo backend dir
+ROOT_DIR = BASE_DIR.parent
 
 load_dotenv(str(ROOT_DIR / '.env'))
 
@@ -30,8 +30,14 @@ def env_int(name: str, default: int) -> int:
 
 ENV = os.environ.get('DJANGO_ENV', 'development')
 
-SECRET_KEY = os.environ.get('SECRET_KEY', os.environ.get('DJANGO_SECRET_KEY', 'default-secret-key-for-dev'))
-ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', os.environ.get('DJANGO_ENCRYPTION_KEY', 'kQn5hP0hD1vQ5e4m2S6j7u8w9x0y1z2A3B4C5D6E7F8='))
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY', 
+    os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-investwise-prod-secret-key-change-in-env-file')
+)
+ENCRYPTION_KEY = os.environ.get(
+    'ENCRYPTION_KEY', 
+    os.environ.get('DJANGO_ENCRYPTION_KEY', 'investwise_default_32_byte_key_123456')
+)
 
 if ENV == 'production' and SECRET_KEY == 'default-secret-key-for-dev':
     raise RuntimeError('In production, SECRET_KEY must be set via environment variable!')
@@ -82,7 +88,6 @@ MIDDLEWARE = [
     'core.middleware.APIVersioningMiddleware',
 ]
 
-# Security headers middleware for production hardening
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = env_bool('SECURE_BROWSER_XSS_FILTER', True)
 X_FRAME_OPTIONS = os.environ.get('X_FRAME_OPTIONS', 'DENY')
@@ -132,13 +137,16 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
 
+# Extended JWT Token Lifetimes for Seamless Testing & Production
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Database configuration supporting SQLite fallback or PostgreSQL override
+# Database Configuration
 DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
 if 'postgres' in DB_ENGINE.lower():
     DATABASES = {
@@ -159,7 +167,7 @@ else:
         }
     }
 
-# Channels Redis configuration
+# Channels Redis Configuration
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -186,7 +194,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     str(ROOT_DIR / 'static'),
-]
+] if (ROOT_DIR / 'static').exists() else []
 STATIC_ROOT = str(ROOT_DIR / 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -196,7 +204,7 @@ AI_MODEL_DIR = os.environ.get('AI_MODEL_DIR', str(ROOT_DIR / 'ai_models'))
 os.makedirs(AI_MODEL_DIR, exist_ok=True)
 os.makedirs(CHROMADB_PERSIST_DIR, exist_ok=True)
 
-# External API Keys (loaded from .env)
+# External API Keys
 FMP_API_KEY = os.environ.get('FMP_API_KEY', '')
 FINNHUB_API_KEY = os.environ.get('FINNHUB_API_KEY', '')
 FRED_API_KEY = os.environ.get('FRED_API_KEY', '')
@@ -206,7 +214,10 @@ GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', GEMINI_API_KEY)
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY', '')
 DEEPGRAM_API_KEY = os.environ.get('DEEPGRAM_API_KEY', '')
 
-# Logging configuration with rotating file handler
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Logging Configuration
 os.makedirs(str(ROOT_DIR / 'logs'), exist_ok=True)
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO' if ENV == 'development' else 'WARNING')
 LOGGING = {
@@ -236,7 +247,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': str(ROOT_DIR / 'logs' / 'investwise.log'),
             'formatter': 'verbose',
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'maxBytes': 10 * 1024 * 1024,
             'backupCount': 5,
         },
         'error_file': {
@@ -272,10 +283,7 @@ LOGGING = {
     },
 }
 
-# Tells Django to use our CustomUser model instead of the default auth.User
-AUTH_USER_MODEL = 'accounts.CustomUser'
-
-# Django Cache Configuration (Redis via django-redis or LocMem fallback)
+# Cache Configuration
 USE_REDIS_CACHE = env_bool('USE_REDIS_CACHE', False)
 if USE_REDIS_CACHE:
     CACHES = {
